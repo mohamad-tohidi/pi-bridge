@@ -1,18 +1,31 @@
 #!/usr/bin/env python3
 """
-Quick demo: call the local Pi agent and print the response.
-Uses the ANTHROPIC_API_KEY environment variable.
+pi-bridge demo: session continuity + custom tool calling.
 """
 
 import os
 import sys
 
-# Add parent directory to path so pi_bridge can be imported
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from pi_bridge import PiSession, Provider, Model, CustomTool
 
 API_KEY = "$DEEPSEEK_API_KEY_PLACEHOLDER"
+
+# ---------------------------------------------------------------------------
+# Custom tool: returns a secret number hidden from the agent
+# ---------------------------------------------------------------------------
+
+SECRET = 37
+
+def get_secret_number() -> str:
+    print(f"  [tool] get_secret_number() → {SECRET}")
+    return str(SECRET)
+
+
+# ---------------------------------------------------------------------------
+# Session setup
+# ---------------------------------------------------------------------------
 
 print("Initializing Pi session...")
 session = PiSession(
@@ -24,35 +37,59 @@ session = PiSession(
         name="deepseek-chat",
         api_format="completion",
     ),
-    tools=[],  # Disable built-in tools for this simple test
+    tools=[],
+    custom_tools=[
+        CustomTool(
+            name="get_secret_number",
+            description="Returns a secret number. Call this tool whenever you need the secret number.",
+            parameters={"type": "object", "properties": {}},
+            fn=get_secret_number,
+        )
+    ],
 )
+
 
 def print_events(events):
     for event in events:
         if event.type == "text_delta":
             print(event.delta, end="", flush=True)
+        elif event.type == "tool_call":
+            print(f"  [agent calling tool: {event.tool_name}]")
         elif event.type == "agent_end":
             print(f"\n[stop_reason={event.stop_reason}]")
         elif event.type == "error":
             print(f"\n[ERROR: {event.message}]", file=sys.stderr)
 
 
-# 第一轮
-print("=== 第一轮 ===")
-print_events(session.send("请给我一个1到10之间的随机数，只回答数字。"))
+# ---------------------------------------------------------------------------
+# Round 1: agent must call the tool to get the number
+# ---------------------------------------------------------------------------
 
-# 第二轮：不传历史，Pi 自己记得上一轮的内容
-print("\n=== 第二轮（同一 session，Pi 记得上一轮的回答）===")
-print_events(session.send("把你刚才说的那个数字乘以3，只回答结果。"))
+print("\n=== 第一轮：工具调用 ===")
+print_events(session.send("请调用 get_secret_number 工具获取秘密数字，然后告诉我它是多少。"))
 
-print("\n=== 消息历史（共两轮）===")
+# ---------------------------------------------------------------------------
+# Round 2: agent already knows the number from the previous turn
+# ---------------------------------------------------------------------------
+
+print("\n=== 第二轮：会话连续性（无需再次调用工具）===")
+print_events(session.send("把刚才那个秘密数字乘以2，只回答结果。"))
+
+# ---------------------------------------------------------------------------
+# Message history
+# ---------------------------------------------------------------------------
+
+print("\n=== 消息历史 ===")
 for msg in session.messages:
     role = msg.get("role", "?")
     if role == "assistant":
         texts = [c["text"] for c in msg.get("content", []) if c.get("type") == "text"]
-        print(f"assistant: {''.join(texts).strip()}")
+        if texts:
+            print(f"assistant: {''.join(texts).strip()}")
     elif role == "user":
         print(f"user: {str(msg.get('content', '')).strip()}")
+    elif role == "tool_result":
+        print(f"tool_result({msg.get('tool_name')}): {msg.get('content', '').strip()}")
 
 session.close()
 print("\nDemo complete!")
