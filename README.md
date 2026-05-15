@@ -142,7 +142,7 @@ PiSession(
 | `model` | — | Model to use |
 | `cwd` | `"."` | Working directory for the agent |
 | `system_prompt` | `""` | Override the default system prompt |
-| `tools` | `None` | Built-in tool allowlist; `None` = Pi defaults, `[]` = none, explicit list = only those tools. Available names: `bash`, `read`, `edit`, `write`, `grep`, `find`, `ls` |
+| `tools` | `None` | Built-in tool allowlist; `None` = Pi defaults (`read`, `bash`, `edit`, `write`), `[]` = none, explicit list = only those tools. All available names: `read`, `bash`, `edit`, `write`, `grep`, `find`, `ls` |
 | `custom_tools` | `None` | Python-side tools exposed to the agent |
 | `persist` | `False` | Persist session history to disk under `cwd/.pi/` |
 
