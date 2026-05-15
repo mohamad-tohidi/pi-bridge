@@ -10,7 +10,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from pi_bridge import PiSession, Provider, Model, CustomTool
 
-API_KEY = "$DEEPSEEK_API_KEY_PLACEHOLDER"
+API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
+if not API_KEY:
+    print("ERROR: DEEPSEEK_API_KEY not set", file=sys.stderr)
+    sys.exit(1)
 
 # ---------------------------------------------------------------------------
 # Custom tool: returns a secret number hidden from the agent
