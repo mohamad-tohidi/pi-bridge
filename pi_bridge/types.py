@@ -21,6 +21,8 @@ class CustomTool:
     description: str
     parameters: dict
     fn: Callable
+    prompt_snippet: str | None = None
+    prompt_guidelines: list[str] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------

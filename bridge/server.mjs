@@ -9,12 +9,24 @@
  */
 
 import { createInterface } from 'readline';
+import { execFileSync } from 'child_process';
 
 // ---------------------------------------------------------------------------
 // Resolve Pi SDK from global install (via NODE_PATH or explicit path)
 // ---------------------------------------------------------------------------
 
-const PI_AGENT_BASE = process.env.PI_AGENT_BASE ?? '/home/ubuntu/.npm-global/lib/node_modules/@earendil-works/pi-coding-agent';
+const PI_AGENT_PACKAGE = '@earendil-works/pi-coding-agent';
+
+function discoverPiAgentBase() {
+    if (process.env.PI_AGENT_BASE) return process.env.PI_AGENT_BASE;
+    try {
+        return `${execFileSync('npm', ['root', '-g'], { encoding: 'utf8' }).trim()}/${PI_AGENT_PACKAGE}`;
+    } catch {
+        return '';
+    }
+}
+
+const PI_AGENT_BASE = discoverPiAgentBase();
 const PI_AI_BASE = `${PI_AGENT_BASE}/node_modules/@earendil-works/pi-ai`;
 const TYPEBOX_BASE = `${PI_AGENT_BASE}/node_modules/typebox`;
 
@@ -124,15 +136,16 @@ function buildModel(providerName, modelConfig, baseUrl) {
         throw new Error(`Unsupported api_format: "${modelConfig.api_format}". Valid values: completion, response, anthropic`);
     }
 
-    // Strip /v1 suffix from baseUrl for Pi SDK (it adds paths itself)
-    const cleanBaseUrl = baseUrl.replace(/\/v1\/?$/, '');
+    const normalizedBaseUrl = apiField.startsWith('openai-')
+        ? normalizeOpenAIBaseUrl(baseUrl)
+        : baseUrl;
 
     // Try known model first
     let model = getModel(providerName, modelConfig.name);
 
     if (model) {
         // Override api and baseUrl from user config
-        model = { ...model, api: apiField, baseUrl: cleanBaseUrl, provider: providerName };
+        model = { ...model, api: apiField, baseUrl: normalizedBaseUrl, provider: providerName };
     } else {
         // Construct custom model object
         model = {
@@ -140,7 +153,7 @@ function buildModel(providerName, modelConfig, baseUrl) {
             name: modelConfig.name,
             api: apiField,
             provider: providerName,
-            baseUrl: cleanBaseUrl,
+            baseUrl: normalizedBaseUrl,
             reasoning: ['high', 'xhigh', 'medium', 'low', 'minimal'].includes(modelConfig.thinking),
             input: ['text'],
             cost: { input: 0, output: 0 },
@@ -150,6 +163,11 @@ function buildModel(providerName, modelConfig, baseUrl) {
     }
 
     return model;
+}
+
+function normalizeOpenAIBaseUrl(baseUrl) {
+    const trimmed = baseUrl.replace(/\/+$/, '');
+    return trimmed.endsWith('/v1') ? trimmed : `${trimmed}/v1`;
 }
 
 // ---------------------------------------------------------------------------
@@ -194,10 +212,12 @@ const {
     model: modelConfig,
     cwd = process.cwd(),
     system_prompt = '',
-    tools: toolNames = undefined,
+    tools: rawToolNames = undefined,
     custom_tools: customToolDefs = [],
     persist = false,
 } = initMsg;
+
+const toolNames = Array.isArray(rawToolNames) ? rawToolNames : undefined;
 
 // Validate thinking level
 const thinkingVal = modelConfig.thinking ?? null;
@@ -239,7 +259,7 @@ for (const toolDef of customToolDefs) {
         process.exit(1);
     }
 
-    customTools.push(defineTool({
+    const toolOptions = {
         name: toolDef.name,
         label: toolDef.name,
         description: toolDef.description,
@@ -271,7 +291,16 @@ for (const toolDef of customToolDefs) {
                 isError: result.is_error ?? false,
             };
         },
-    }));
+    };
+
+    if (toolDef.prompt_snippet) {
+        toolOptions.promptSnippet = toolDef.prompt_snippet;
+    }
+    if (Array.isArray(toolDef.prompt_guidelines) && toolDef.prompt_guidelines.length > 0) {
+        toolOptions.promptGuidelines = toolDef.prompt_guidelines;
+    }
+
+    customTools.push(defineTool(toolOptions));
 }
 
 // ---------------------------------------------------------------------------
@@ -462,9 +491,11 @@ for await (const line of lines) {
                         content: (m.content ?? []).map((c) => {
                             if (c.type === 'text') return { type: 'text', text: c.text };
                             if (c.type === 'thinking') return { type: 'thinking', thinking: c.thinking };
+                            if (c.type === 'toolCall') return { type: 'tool_call', name: c.name, arguments: c.arguments };
                             return { type: c.type };
                         }),
                         stop_reason: m.stopReason,
+                        error_message: m.errorMessage,
                     };
                 }
                 if (m.role === 'user') {

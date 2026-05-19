@@ -26,11 +26,23 @@ from .types import (
 _BRIDGE_DIR = Path(__file__).parent.parent / "bridge"
 _BRIDGE_SERVER = _BRIDGE_DIR / "server.mjs"
 
-# Global npm path for Pi SDK (set via env or default)
-_PI_AGENT_BASE = os.environ.get(
-    "PI_AGENT_BASE",
-    "/home/ubuntu/.npm-global/lib/node_modules/@earendil-works/pi-coding-agent",
-)
+_PI_AGENT_PACKAGE = "@earendil-works/pi-coding-agent"
+
+
+def _discover_pi_agent_base() -> str:
+    env_base = os.environ.get("PI_AGENT_BASE")
+    if env_base:
+        return env_base
+
+    try:
+        npm_root = subprocess.check_output(
+            ["npm", "root", "-g"],
+            text=True,
+        ).strip()
+    except Exception:
+        return ""
+
+    return str(Path(npm_root) / _PI_AGENT_PACKAGE)
 
 
 def _parse_event(raw: dict) -> ResponseEvent | None:
@@ -89,7 +101,7 @@ class PiSession:
         bridge_script = bridge_path or str(_BRIDGE_SERVER)
 
         env = os.environ.copy()
-        env["PI_AGENT_BASE"] = _PI_AGENT_BASE
+        env["PI_AGENT_BASE"] = _discover_pi_agent_base()
 
         self._proc = subprocess.Popen(
             ["node", bridge_script],
@@ -130,6 +142,8 @@ class PiSession:
                     "name": t.name,
                     "description": t.description,
                     "parameters": t.parameters,
+                    "prompt_snippet": t.prompt_snippet,
+                    "prompt_guidelines": t.prompt_guidelines,
                 }
                 for t in self._custom_tools
             ],
