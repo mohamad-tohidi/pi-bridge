@@ -1,5 +1,5 @@
+from typing import Callable, Protocol, Iterator
 from dataclasses import dataclass, field
-from typing import Callable
 
 
 @dataclass
@@ -84,3 +84,9 @@ ResponseEvent = (
     | AgentEndEvent
     | ErrorEvent
 )
+
+
+class ResponseEventTransformer(Protocol):
+    """A protocol for objects that can transform a stream of ResponseEvents."""
+    def transform(self, event_iterator: Iterator[ResponseEvent]) -> Iterator[ResponseEvent]:
+        ...

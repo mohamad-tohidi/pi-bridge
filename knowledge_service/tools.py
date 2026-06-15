@@ -1,6 +1,10 @@
 import requests
 import re
 import asyncio
+import logging
+
+# Set up logging for the tools module
+logger = logging.getLogger(__name__)
 
 async def parsa_tool(query: str) -> str:
     """
@@ -10,6 +14,7 @@ async def parsa_tool(query: str) -> str:
     Args:
         query: The search query.
     """
+    logger.info(f"Parsa tool called with query: {query}")
     url = "http://172.30.0.112:8181/api/user/question/search"
     params = {
         "type": "semantic",
@@ -21,8 +26,6 @@ async def parsa_tool(query: str) -> str:
     headers = {"accept": "application/json"}
 
     try:
-        # Using a sync call inside the async function as the current pi-bridge 
-        # wrapper handles the thread management, but we'll keep it simple.
         response = requests.get(url, params=params, headers=headers, timeout=10)
         response.raise_for_status()
         data = response.json()
@@ -30,39 +33,22 @@ async def parsa_tool(query: str) -> str:
 
         relevant_items = []
         
-        # Based on the user's provided logic: result["result"] seems to be the list
-        # The user's code had: for res in result["result"]:
-        # We need to check if 'result' is a dict containing 'result' key or the list itself.
-        # The user's code: result: list[dict] = response.json().get("data", [])
-        # then: for res in result["result"]: 
-        # This implies 'result' is actually a dict from the 'data' key.
-        
-        # Let's follow the user's logic carefully:
         search_results = result.get("result", []) if isinstance(result, dict) else []
 
         for res in search_results:
-            # Extract highlight
             highlight_text = res.get("highlight", "")
             match = re.search(r"پاسخ:\s*(.*)", highlight_text)
             answer_highlight = match.group(1).strip() if match else highlight_text
 
-            cleaned_item = {
-                "id": res.get("id"),
-                "title": res.get("content"),
-                "snippet": answer_highlight[:600],
-                "source_link": res.get("source_link", "")
-            }
-            relevant_items.append(cleaned_item)
+            # We include the ID and the URL in a format the LLM can parse.
+            # The LLM is instructed via system prompt to use [[LINK:ID]]
+            item_str = f"[ID:{res.get('id')}] Title: {res.get('content')} | Snippet: {answer_highlight[:600]} | URL: {res.get('source_link', '')}"
+            relevant_items.append(item_str)
 
         if not relevant_items:
             return "No relevant religious content found for this query."
 
-        # Format the output for the LLM
-        formatted_results = "\n\n".join([
-            f"Source: {item['title']}\nSnippet: {item['snippet']}\nLink: {item['source_link']}"
-            for item in relevant_items
-        ])
-        return formatted_results
+        return "\n\n".join(relevant_items)
 
     except Exception as e:
         return f"Error searching Parsa: {str(e)}"
@@ -74,8 +60,7 @@ async def haditha_tool(query: str) -> str:
     Args:
         query: The search query.
     """
-    # Placeholder for Haditha implementation
-    return f"HADITHA RESULT: (Mock) Searching for Ahadith related to '{query}'... [Mocked Content]"
+    return f"HADITHA RESULT: (Mock) Searching for Ahadith related to '{query}'..."
 
 # Mapping for easy access
 TOOLS = {

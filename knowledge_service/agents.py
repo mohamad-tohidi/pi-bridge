@@ -1,12 +1,14 @@
-import os
 from typing import Dict, Optional, Iterator
+import os
+
+from dotenv import load_dotenv; load_dotenv()
 
 from pi_bridge.session import PiSession
 from pi_bridge.types import Provider, Model, CustomTool
 from .models import AgentResponse, AgentCreateRequest
 from .tools import TOOLS, get_tool_definitions
 from .storage import storage
-
+from .transformers import LinkEnforcementTransformer
 
 API_KEY = os.environ.get("OPENAI_API_KEY", "")
 BASE_URL = os.environ.get("OPENAI_API_BASE", "")
@@ -21,9 +23,14 @@ class AgentManager:
         self._sessions: Dict[str, PiSession] = {}
 
     def create_agent(self, request: AgentCreateRequest) -> AgentResponse:
+        # Construct the system prompt based on behavior config
         system_prompt = request.system_prompt
         if request.behavior_config.get("return_links"):
-            system_prompt += "\nAlways include links to the sources used."
+            system_prompt += (
+                "\n\nIMPORTANT: When you use information from a tool, you MUST cite it. "
+                "Instead of writing the full URL, use the format [[LINK:ID]] where ID is the "
+                "ID provided in the tool output (e.g., [[LINK:123]]). Do not include the actual URL in your text."
+            )
 
         agent = AgentResponse(
             name=request.name,
@@ -53,14 +60,11 @@ class AgentManager:
             if tool_type in TOOLS:
                 fn = TOOLS[tool_type]
                 
-                # Since the bridge expects a synchronous function, we wrap the async tool
-                # In a real application, we'd want a cleaner way to do this.
                 import asyncio
                 import threading
                 from concurrent.futures import ThreadPoolExecutor
 
                 def sync_wrapper(**kwargs):
-                    # This is a simplified way to run the async tool in a thread
                     def run_async():
                         return asyncio.run(fn(**kwargs))
                     
@@ -77,11 +81,16 @@ class AgentManager:
                         fn=sync_wrapper
                     ))
 
+        transformers = []
+        if agent.behavior_config.get("return_links"):
+            transformers.append(LinkEnforcementTransformer())
+
         session = PiSession(
             provider=DEFAULT_PROVIDER,
             model=DEFAULT_MODEL,
             system_prompt=agent.system_prompt,
-            custom_tools=custom_tools
+            custom_tools=custom_tools,
+            transformers=transformers
         )
         self._sessions[agent_name] = session
         return session

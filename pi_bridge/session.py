@@ -15,6 +15,7 @@ from .types import (
     Model,
     Provider,
     ResponseEvent,
+    ResponseEventTransformer,
     TextDeltaEvent,
     ThinkingDeltaEvent,
     ToolCallEvent,
@@ -92,16 +93,20 @@ class PiSession:
         custom_tools: list[CustomTool] | None = None,
         persist: bool = False,
         bridge_path: str = "",
+        transformers: list[ResponseEventTransformer] | None = None,
     ):
         self._provider = provider
         self._model = model
         self._custom_tools: list[CustomTool] = custom_tools or []
+        self._transformers: list[ResponseEventTransformer] = transformers or []
         self._closed = False
 
         bridge_script = bridge_path or str(_BRIDGE_SERVER)
 
         env = os.environ.copy()
         env["PI_AGENT_BASE"] = _discover_pi_agent_base()
+        env["LOG_LEVEL"] = "info"
+        env["NODE_ENV"] = "production"
 
         self._proc = subprocess.Popen(
             ["node", bridge_script],
@@ -247,7 +252,7 @@ class PiSession:
     # Public API
     # ------------------------------------------------------------------
 
-    def send_stream(self, message: str) -> Iterator[ResponseEvent]:
+    def send_stream(self, message: str, transformers: list[ResponseEventTransformer] | None = None) -> Iterator[ResponseEvent]:
         """
         Stream events for one agent turn.
         Handles custom tool_request events inline.
@@ -256,29 +261,40 @@ class PiSession:
         self._check_alive()
         self._write({"type": "prompt", "message": message})
 
-        while True:
-            self._check_alive()
-            raw = self._read_line()
-            if raw is None:
-                raise BridgeError("Bridge process closed stdout unexpectedly")
+        def _event_generator():
+            while True:
+                self._check_alive()
+                raw = self._read_line()
+                if raw is None:
+                    raise BridgeError("Bridge process closed stdout unexpectedly")
 
-            # Custom tool forwarding
-            if raw.get("type") == "tool_request":
-                self._dispatch_tool_request(raw)
-                continue
+                # Custom tool forwarding
+                if raw.get("type") == "tool_request":
+                    self._dispatch_tool_request(raw)
+                    continue
 
-            # Response to a query command (get_messages / get_state) — skip
-            if raw.get("type") == "response":
-                continue
+                # Response to a query command (get_messages / get_state) — skip
+                if raw.get("type") == "response":
+                    continue
 
-            event = _parse_event(raw)
-            if event is None:
-                continue
+                event = _parse_event(raw)
+                if event is None:
+                    continue
 
-            yield event
+                yield event
 
-            if isinstance(event, AgentEndEvent):
-                break
+                if isinstance(event, AgentEndEvent):
+                    break
+
+        events = _event_generator()
+        
+        # Combine session-level transformers with call-level transformers
+        all_transformers = self._transformers + (transformers or [])
+        
+        for transformer in all_transformers:
+            events = transformer.transform(events)
+        
+        yield from events
 
     def send(self, message: str) -> list[ResponseEvent]:
         """Block until agent_end, return all events from this turn."""

@@ -14,5 +14,5 @@ class AgentStorage:
     def list_agents(self) -> list[AgentResponse]:
         return list(self._agents.values())
 
-# Singleton instance
+# Singleton instance to be imported by other modules
 storage = AgentStorage()

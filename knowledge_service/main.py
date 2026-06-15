@@ -1,19 +1,27 @@
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import StreamingResponse
-from typing import List
+import re
+from typing import List, Dict
 import json
 import asyncio
-from dotenv import load_dotenv; load_dotenv()
 import threading
+import logging
 from queue import Queue
 
 from .models import ToolDefinition, AgentResponse, AgentCreateRequest, AskRequest, AskResponse
 from .tools import get_tool_definitions
 from .agents import agent_manager
 from .storage import storage
+from .utils import extract_link_map, replace_tokens_with_links
 
-# Import types for instance checking
-from pi_bridge.types import TextDeltaEvent, AgentEndEvent, ErrorEvent
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import StreamingResponse
+from pi_bridge.types import TextDeltaEvent, AgentEndEvent, ErrorEvent, ToolResultEvent
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Pi Knowledge Service")
 
@@ -49,19 +57,24 @@ async def ask(request: AskRequest):
         events = session.send(request.query)
         
         full_response = ""
+        tool_results_content = []
+        
         for event in events:
-            # Log events to terminal for debugging
-            print(f"DEBUG: Received event type: {type(event)} - content: {event}")
+            logger.info(f"Received event type: {type(event)}")
             
             if isinstance(event, TextDeltaEvent):
                 full_response += event.delta
+            elif isinstance(event, ToolResultEvent):
+                tool_results_content.append(event.content)
             elif isinstance(event, ErrorEvent):
-                # If the agent returns an error, raise it as an HTTP exception
                 raise HTTPException(status_code=500, detail=f"Agent Error: {event.message}")
             elif isinstance(event, AgentEndEvent):
                 break
         
-        return AskResponse(response=full_response)
+        link_map = extract_link_map(tool_results_content)
+        final_response = replace_tokens_with_links(full_response, link_map)
+        
+        return AskResponse(response=final_response)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except HTTPException:
@@ -87,6 +100,8 @@ async def ask_stream(request: AskRequest):
             thread = threading.Thread(target=worker)
             thread.start()
 
+            link_map = {}
+
             while True:
                 event = event_queue.get()
                 if event is None:
@@ -95,8 +110,20 @@ async def ask_stream(request: AskRequest):
                     yield f"data: {json.dumps({'type': 'error', 'message': str(event)})}\n\n"
                     break
                 
-                print(f"DEBUG STREAM: {event}")
-                yield f"data: {json.dumps(event.__dict__)}\n\n"
+                if isinstance(event, ToolResultEvent):
+                    new_map = extract_link_map([event.content])
+                    link_map.update(new_map)
+                    continue
+
+                if isinstance(event, TextDeltaEvent):
+                    processed_delta = replace_tokens_with_links(event.delta, link_map)
+                    yield f"data: {json.dumps({'type': 'text_delta', 'delta': processed_delta})}\n\n"
+                
+                elif isinstance(event, AgentEndEvent):
+                    yield f"data: {json.dumps(event.__dict__)}\n\n"
+                    break
+                else:
+                    yield f"data: {json.dumps(event.__dict__)}\n\n"
             
             thread.join()
 
