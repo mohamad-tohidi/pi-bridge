@@ -9,10 +9,14 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from pi_bridge import PiSession, Provider, Model, CustomTool
+from dotenv import load_dotenv ; load_dotenv()
 
-API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
+API_KEY = os.environ.get("OPENAI_API_KEY", "")
+BASE_URL = os.environ.get("OPENAI_API_BASE", "")
+MODEL_NAME = os.environ.get("OPENAI_MODEL", "")
+
 if not API_KEY:
-    print("ERROR: DEEPSEEK_API_KEY not set", file=sys.stderr)
+    print("ERROR: OPENAI_API_KEY not set", file=sys.stderr)
     sys.exit(1)
 
 # ---------------------------------------------------------------------------
@@ -33,11 +37,11 @@ def get_secret_number() -> str:
 print("Initializing Pi session...")
 session = PiSession(
     provider=Provider(
-        base_url="https://api.deepseek.com/v1",
+        base_url=BASE_URL,
         api_key=API_KEY,
     ),
     model=Model(
-        name="deepseek-chat",
+        name=MODEL_NAME,
         api_format="completion",
     ),
     tools=[],
