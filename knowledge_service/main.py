@@ -3,6 +3,7 @@ from fastapi.responses import StreamingResponse
 from typing import List
 import json
 import asyncio
+from dotenv import load_dotenv; load_dotenv()
 import threading
 from queue import Queue
 

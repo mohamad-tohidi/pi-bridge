@@ -7,9 +7,14 @@ from .models import AgentResponse, AgentCreateRequest
 from .tools import TOOLS, get_tool_definitions
 from .storage import storage
 
+
+API_KEY = os.environ.get("OPENAI_API_KEY", "")
+BASE_URL = os.environ.get("OPENAI_API_BASE", "")
+MODEL_NAME = os.environ.get("OPENAI_MODEL", "")
+
 # Mocked provider and model for demonstration
-DEFAULT_PROVIDER = Provider(base_url="https://api.openai.com/v1", api_key="sk-...")
-DEFAULT_MODEL = Model(name="gpt-4o", api_format="completion")
+DEFAULT_PROVIDER = Provider(base_url=BASE_URL, api_key=API_KEY)
+DEFAULT_MODEL = Model(name=MODEL_NAME, api_format="completion")
 
 class AgentManager:
     def __init__(self):
