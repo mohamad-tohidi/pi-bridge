@@ -1,6 +1,5 @@
 import requests
 import re
-import asyncio
 import logging
 
 # Set up logging for the tools module
