@@ -11,15 +11,15 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
 <style>
 :root {
-  --bg:       #0f0f0f;
-  --surface:  #171717;
-  --surface2: #1e1e1e;
-  --border:   #2a2a2a;
-  --dim:      #3a3a3a;
-  --muted:    #666;
-  --subtle:   #888;
-  --text:     #d4d4d4;
-  --bright:   #f0f0f0;
+  --bg:       #1a1a18;
+  --surface:  #222220;
+  --surface2: #292926;
+  --border:   #333330;
+  --dim:      #44443f;
+  --muted:    #706e62;
+  --subtle:   #9a9585;
+  --text:     #d6c9a8;
+  --bright:   #e8d9b8;
   --green:    #3fb950;
   --green-dim:#1a3a1e;
   --yellow:   #d29922;
@@ -82,7 +82,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   cursor: pointer;
   border-radius: var(--radius);
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23666'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23706e62'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
 }
@@ -851,7 +851,6 @@ async function sendMessage() {
   let responseText = '';
   let cursorEl = null;
 
-  // add streaming cursor
   cursorEl = document.createElement('span');
   cursorEl.className = 'stream-cursor';
   contentEl.appendChild(cursorEl);
@@ -894,7 +893,6 @@ async function sendMessage() {
 
         if (evt.type === 'text_delta') {
           responseText += evt.delta;
-          // remove cursor, re-render markdown, re-add cursor
           if (cursorEl.parentNode) cursorEl.remove();
           contentEl.innerHTML = marked.parse(responseText);
           contentEl.appendChild(cursorEl);
@@ -923,7 +921,6 @@ async function sendMessage() {
     contentEl.innerHTML += `<p style="color:var(--red)">${escHtml(e.message)}</p>`;
   }
 
-  // finalize
   if (cursorEl.parentNode) cursorEl.remove();
   finalizeThinking(traceEl);
   isStreaming = false;
@@ -952,15 +949,13 @@ function appendAssistantMessage() {
 
   const traceEl = document.createElement('div');
   traceEl.className = 'process-trace';
-  // thinking row (hidden until we get thinking_delta)
   traceEl.innerHTML = `
-    <div class="trace-thinking" id="think-toggle-${Date.now()}" style="display:none">
-      <div class="thinking-dot pulse" id="think-dot-${Date.now()}"></div>
+    <div class="trace-thinking" style="display:none">
+      <div class="thinking-dot pulse"></div>
       <span class="think-label">thinking…</span>
     </div>
     <div class="trace-thinking-content"></div>
   `;
-  // wire toggle
   const tt = traceEl.querySelector('.trace-thinking');
   const tc = traceEl.querySelector('.trace-thinking-content');
   tt.addEventListener('click', () => tc.classList.toggle('open'));
@@ -1025,10 +1020,7 @@ function updateToolTrace(traceEl, id, content, isError) {
   const stat = document.getElementById('tstat-' + id);
   const res  = document.getElementById('tresult-' + id);
 
-  if (dot) {
-    dot.classList.remove('spin');
-    dot.classList.add(isError ? 'error' : 'done');
-  }
+  if (dot) { dot.classList.remove('spin'); dot.classList.add(isError ? 'error' : 'done'); }
   if (stat) {
     stat.textContent = isError ? 'error' : '✓ done';
     stat.classList.add('show');
@@ -1041,7 +1033,6 @@ function updateToolTrace(traceEl, id, content, isError) {
         <div class="trace-code">${escHtml(String(content))}</div>
       </div>
     `;
-    // auto-open body to show result
     const body = document.getElementById('tbody-' + id);
     if (body) body.classList.add('open');
   }
