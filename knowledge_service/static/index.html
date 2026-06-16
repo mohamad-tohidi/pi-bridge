@@ -1,514 +1,642 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>pi · agent</title>
-
-<!-- Marked.js for markdown -->
+<title>agent</title>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<!-- CodeMirror -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/monokai.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
-
 <style>
-  :root {
-    --bg:        #0e0e0e;
-    --bg2:       #141414;
-    --bg3:       #1a1a1a;
-    --border:    #2a2a2a;
-    --dim:       #444;
-    --muted:     #666;
-    --text:      #c8c8c8;
-    --bright:    #e8e8e8;
-    --green:     #4ec94e;
-    --yellow:    #d4a843;
-    --red:       #c0392b;
-    --blue:      #5b9bd5;
-    --font:      'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
-  }
+:root {
+  --bg:       #0f0f0f;
+  --surface:  #171717;
+  --surface2: #1e1e1e;
+  --border:   #2a2a2a;
+  --dim:      #3a3a3a;
+  --muted:    #666;
+  --subtle:   #888;
+  --text:     #d4d4d4;
+  --bright:   #f0f0f0;
+  --green:    #3fb950;
+  --green-dim:#1a3a1e;
+  --yellow:   #d29922;
+  --red:      #f85149;
+  --blue:     #58a6ff;
+  --font:     -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --mono:     'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --sidebar-w: 260px;
+  --radius:   6px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.65; overflow: hidden; }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+/* ── scrollbars ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
 
-  html, body {
-    height: 100%;
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font);
-    font-size: 13px;
-    line-height: 1.6;
-  }
+/* ══════════════════════════════════════
+   SIDEBAR
+══════════════════════════════════════ */
+#sidebar {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: var(--sidebar-w);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform 0.22s cubic-bezier(.4,0,.2,1);
+  z-index: 100;
+}
+#sidebar.open { transform: translateX(0); }
 
-  /* ── top bar ── */
-  #topbar {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 8px 16px;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg2);
-    height: 38px;
-    flex-shrink: 0;
-  }
-  #topbar .logo { color: var(--green); font-weight: 700; letter-spacing: 2px; font-size: 12px; }
-  #topbar nav { display: flex; gap: 12px; }
-  #topbar nav a {
-    color: var(--muted);
-    text-decoration: none;
-    font-size: 11px;
-    letter-spacing: 1px;
-    padding: 2px 0;
-    border-bottom: 1px solid transparent;
-    transition: color 0.15s, border-color 0.15s;
-  }
-  #topbar nav a.active, #topbar nav a:hover { color: var(--bright); border-bottom-color: var(--green); }
-  #topbar .spacer { flex: 1; }
-  #llm-indicator { font-size: 11px; color: var(--muted); }
-  #llm-indicator span { color: var(--blue); }
+#sidebar-top {
+  padding: 20px 18px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+#sidebar-title {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
 
-  /* ── page layout ── */
-  #app { display: flex; flex-direction: column; height: 100vh; }
-  .page { display: none; flex: 1; overflow: hidden; }
-  .page.active { display: flex; }
+/* agent selector */
+.sb-label { font-size: 11px; color: var(--muted); margin-bottom: 5px; }
+#agent-select {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--bright);
+  font-family: var(--font);
+  font-size: 13px;
+  padding: 7px 10px;
+  outline: none;
+  cursor: pointer;
+  border-radius: var(--radius);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23666'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+#agent-select:focus { border-color: var(--green); }
 
-  /* ════════════════════════════════════
-     CHAT PAGE
-  ════════════════════════════════════ */
-  #page-chat { flex-direction: row; }
+#session-display {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--muted);
+  font-family: var(--mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-  /* sidebar */
-  #sidebar {
-    width: 280px;
-    min-width: 280px;
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    background: var(--bg2);
-  }
-  #sidebar-header {
-    padding: 10px 14px;
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--muted);
-    border-bottom: 1px solid var(--border);
-    text-transform: uppercase;
-  }
-  #tool-calls {
-    flex: 1;
-    overflow-y: auto;
-    padding: 8px;
-  }
-  #tool-calls::-webkit-scrollbar { width: 4px; }
-  #tool-calls::-webkit-scrollbar-track { background: transparent; }
-  #tool-calls::-webkit-scrollbar-thumb { background: var(--border); }
+#llm-display {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+#llm-display span { color: var(--blue); }
 
-  /* tool call card */
-  .tool-card {
-    border: 1px solid var(--border);
-    margin-bottom: 8px;
-    animation: fadeSlideIn 0.2s ease;
-  }
-  .tool-card-header {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
-    cursor: pointer;
-    background: var(--bg3);
-    user-select: none;
-  }
-  .tool-card-header:hover { background: #1f1f1f; }
-  .tool-status {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--yellow);
-    flex-shrink: 0;
-    transition: background 0.3s;
-  }
-  .tool-status.done { background: var(--green); }
-  .tool-status.error { background: var(--red); }
-  .tool-name { color: var(--bright); font-size: 12px; flex: 1; }
-  .tool-toggle { color: var(--dim); font-size: 10px; }
-  .tool-body { display: none; padding: 8px 10px; border-top: 1px solid var(--border); }
-  .tool-body.open { display: block; }
-  .tool-section-label { font-size: 10px; color: var(--muted); letter-spacing: 1px; margin-bottom: 4px; }
-  .tool-code {
-    background: var(--bg);
-    padding: 6px 8px;
-    font-size: 11px;
-    color: var(--text);
-    white-space: pre-wrap;
-    word-break: break-all;
-    max-height: 120px;
-    overflow-y: auto;
-    margin-bottom: 8px;
-  }
-  .tool-code::-webkit-scrollbar { width: 3px; }
-  .tool-code::-webkit-scrollbar-thumb { background: var(--border); }
+/* sidebar nav */
+#sidebar-nav {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.sb-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  border: none;
+  background: none;
+  color: var(--subtle);
+  font-family: var(--font);
+  font-size: 13px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background 0.12s, color 0.12s;
+}
+.sb-nav-btn:hover, .sb-nav-btn.active { background: var(--surface2); color: var(--bright); }
+.sb-nav-btn svg { flex-shrink: 0; opacity: 0.7; }
 
-  /* main chat area */
-  #chat-main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
+#sidebar-bottom {
+  padding: 12px 10px;
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.sb-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--muted);
+  font-family: var(--font);
+  font-size: 12px;
+  cursor: pointer;
+  width: 100%;
+  transition: color 0.12s, border-color 0.12s;
+}
+.sb-action-btn:hover { color: var(--bright); border-color: var(--subtle); }
 
-  /* agent selector bar */
-  #agent-bar {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 16px;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg2);
-    flex-shrink: 0;
-  }
-  #agent-bar label { font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
-  #agent-select {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    color: var(--bright);
-    font-family: var(--font);
-    font-size: 12px;
-    padding: 3px 8px;
-    outline: none;
-    cursor: pointer;
-  }
-  #agent-select:focus { border-color: var(--green); }
-  #session-id-display { font-size: 10px; color: var(--dim); margin-left: auto; }
-  #new-session-btn {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    font-family: var(--font);
-    font-size: 10px;
-    padding: 3px 8px;
-    cursor: pointer;
-    letter-spacing: 1px;
-    transition: color 0.15s, border-color 0.15s;
-  }
-  #new-session-btn:hover { color: var(--bright); border-color: var(--dim); }
+/* sidebar toggle button (always visible) */
+#sb-toggle {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 101;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--subtle);
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: color 0.12s, border-color 0.12s, left 0.22s cubic-bezier(.4,0,.2,1);
+}
+#sb-toggle:hover { color: var(--bright); border-color: var(--subtle); }
+#sb-toggle.shifted { left: calc(var(--sidebar-w) + 14px); }
 
-  /* messages */
-  #messages {
-    flex: 1;
-    overflow-y: auto;
-    padding: 16px;
-  }
-  #messages::-webkit-scrollbar { width: 4px; }
-  #messages::-webkit-scrollbar-thumb { background: var(--border); }
+/* overlay */
+#sb-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 99;
+  animation: fadeIn 0.15s ease;
+}
+#sb-overlay.show { display: block; }
 
-  .msg {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 20px;
-    animation: fadeIn 0.2s ease;
-  }
-  .msg-meta {
-    font-size: 10px;
-    color: var(--dim);
-    letter-spacing: 1px;
-    margin-bottom: 4px;
-  }
-  .msg.user .msg-meta { color: var(--muted); }
-  .msg.assistant .msg-meta { color: var(--green); }
+/* ══════════════════════════════════════
+   PAGES
+══════════════════════════════════════ */
+.page { display: none; height: 100vh; flex-direction: column; overflow: hidden; }
+.page.active { display: flex; }
 
-  .msg-bubble {
-    padding: 0;
-    max-width: 100%;
-  }
-  .msg.user .msg-bubble {
-    color: var(--text);
-    border-left: 2px solid var(--dim);
-    padding-left: 10px;
-  }
-  .msg.assistant .msg-bubble { color: var(--bright); }
+/* ══════════════════════════════════════
+   CHAT PAGE
+══════════════════════════════════════ */
+#page-chat { position: relative; }
 
-  /* markdown output */
-  .msg-bubble p { margin-bottom: 8px; }
-  .msg-bubble p:last-child { margin-bottom: 0; }
-  .msg-bubble h1,.msg-bubble h2,.msg-bubble h3 {
-    color: var(--bright);
-    font-size: 13px;
-    margin: 10px 0 4px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
-  .msg-bubble code {
-    background: var(--bg3);
-    padding: 1px 5px;
-    font-family: var(--font);
-    font-size: 12px;
-    color: var(--yellow);
-  }
-  .msg-bubble pre {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    padding: 10px;
-    overflow-x: auto;
-    margin: 6px 0;
-  }
-  .msg-bubble pre code {
-    background: none;
-    padding: 0;
-    color: var(--text);
-  }
-  .msg-bubble ul, .msg-bubble ol { padding-left: 18px; margin-bottom: 8px; }
-  .msg-bubble li { margin-bottom: 2px; }
-  .msg-bubble blockquote {
-    border-left: 2px solid var(--dim);
-    padding-left: 10px;
-    color: var(--muted);
-    margin: 6px 0;
-  }
-  .msg-bubble a { color: var(--blue); text-decoration: none; }
-  .msg-bubble a:hover { text-decoration: underline; }
-  .msg-bubble table { border-collapse: collapse; margin: 6px 0; }
-  .msg-bubble th, .msg-bubble td {
-    border: 1px solid var(--border);
-    padding: 4px 10px;
-    font-size: 12px;
-  }
-  .msg-bubble th { color: var(--bright); }
+#messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 48px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 
-  /* thinking block */
-  .thinking-wrapper { margin-bottom: 6px; }
-  .thinking-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    user-select: none;
-    color: var(--muted);
-    font-size: 11px;
-    letter-spacing: 1px;
-    padding: 2px 0;
-    border-bottom: 1px dashed transparent;
-    transition: color 0.15s, border-color 0.15s;
-  }
-  .thinking-toggle:hover { color: var(--text); border-bottom-color: var(--dim); }
-  .thinking-cursor {
-    display: inline-block;
-    color: var(--yellow);
-    animation: blink 1s step-end infinite;
-    font-size: 14px;
-    line-height: 1;
-  }
-  .thinking-cursor.done { animation: none; color: var(--dim); }
-  .thinking-content {
-    display: none;
-    background: var(--bg3);
-    border-left: 2px solid var(--dim);
-    padding: 8px 12px;
-    margin-top: 4px;
-    font-size: 11px;
-    color: var(--muted);
-    white-space: pre-wrap;
-    max-height: 200px;
-    overflow-y: auto;
-    animation: fadeIn 0.15s ease;
-  }
-  .thinking-content::-webkit-scrollbar { width: 3px; }
-  .thinking-content::-webkit-scrollbar-thumb { background: var(--border); }
-  .thinking-content.open { display: block; }
+.msg-wrap {
+  width: 100%;
+  max-width: 720px;
+  margin-bottom: 28px;
+  animation: msgIn 0.18s ease;
+}
 
-  /* input area */
-  #input-area {
-    border-top: 1px solid var(--border);
-    padding: 10px 16px;
-    display: flex;
-    align-items: flex-end;
-    gap: 10px;
-    background: var(--bg2);
-    flex-shrink: 0;
-  }
-  #input-prompt { color: var(--green); font-size: 14px; padding-bottom: 2px; flex-shrink: 0; }
-  #user-input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: var(--bright);
-    font-family: var(--font);
-    font-size: 13px;
-    resize: none;
-    overflow-y: hidden;
-    min-height: 22px;
-    max-height: 160px;
-    line-height: 1.6;
-  }
-  #send-btn {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    font-family: var(--font);
-    font-size: 11px;
-    padding: 4px 10px;
-    cursor: pointer;
-    letter-spacing: 1px;
-    flex-shrink: 0;
-    transition: color 0.15s, border-color 0.15s;
-    align-self: flex-end;
-  }
-  #send-btn:hover:not(:disabled) { color: var(--green); border-color: var(--green); }
-  #send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+/* user message */
+.msg-wrap.user .msg-content {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
 
-  /* ════════════════════════════════════
-     CONFIG PAGE
-  ════════════════════════════════════ */
-  #page-config {
-    flex-direction: column;
-    overflow-y: auto;
-    padding: 24px;
-  }
-  #page-config::-webkit-scrollbar { width: 4px; }
-  #page-config::-webkit-scrollbar-thumb { background: var(--border); }
+/* assistant message */
+.msg-wrap.assistant .msg-content {
+  color: var(--bright);
+  font-size: 14.5px;
+  line-height: 1.75;
+}
 
-  .config-section { margin-bottom: 32px; max-width: 860px; }
-  .config-section-title {
-    font-size: 10px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 12px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid var(--border);
-  }
+/* ── process trace (thinking + tool calls) ── */
+.process-trace {
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 
-  /* table */
-  .data-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-  .data-table th {
-    text-align: left;
-    font-size: 10px;
-    letter-spacing: 1px;
-    color: var(--muted);
-    padding: 6px 10px;
-    border-bottom: 1px solid var(--border);
-    text-transform: uppercase;
-  }
-  .data-table td {
-    padding: 7px 10px;
-    border-bottom: 1px solid #1e1e1e;
-    font-size: 12px;
-    color: var(--text);
-    vertical-align: top;
-  }
-  .data-table tr:hover td { background: var(--bg3); }
-  .badge {
-    font-size: 10px;
-    padding: 1px 6px;
-    letter-spacing: 1px;
-  }
-  .badge.valid   { color: var(--green);  border: 1px solid var(--green);  }
-  .badge.invalid { color: var(--red);    border: 1px solid var(--red);    }
-  .badge.pending { color: var(--yellow); border: 1px solid var(--yellow); }
+/* thinking row */
+.trace-thinking {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  transition: border-color 0.12s, color 0.12s;
+  width: fit-content;
+}
+.trace-thinking:hover { border-color: var(--subtle); color: var(--text); }
+.thinking-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--yellow);
+  flex-shrink: 0;
+}
+.thinking-dot.pulse { animation: pulse 1.2s ease infinite; }
+.thinking-dot.done  { background: var(--muted); animation: none; }
+.trace-thinking-content {
+  display: none;
+  margin-top: 4px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--muted);
+  white-space: pre-wrap;
+  max-height: 220px;
+  overflow-y: auto;
+  animation: fadeIn 0.15s ease;
+}
+.trace-thinking-content.open { display: block; }
 
-  /* forms */
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-  .form-full { grid-column: 1 / -1; }
-  .field { display: flex; flex-direction: column; gap: 4px; }
-  .field label { font-size: 10px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; }
-  .field input, .field select, .field textarea {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    color: var(--bright);
-    font-family: var(--font);
-    font-size: 12px;
-    padding: 6px 8px;
-    outline: none;
-    transition: border-color 0.15s;
-  }
-  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--green); }
-  .field textarea { resize: vertical; min-height: 60px; }
+/* tool call row */
+.trace-tool {
+  display: flex;
+  flex-direction: column;
+  animation: fadeSlideIn 0.18s ease;
+}
+.trace-tool-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 12px;
+  color: var(--muted);
+  width: fit-content;
+  transition: border-color 0.12s;
+}
+.trace-tool-header:hover { border-color: var(--subtle); color: var(--text); }
+.tool-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--yellow);
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+.tool-dot.done  { background: var(--green); }
+.tool-dot.error { background: var(--red); }
+.tool-dot.spin  { animation: spin 0.8s linear infinite; background: conic-gradient(var(--yellow) 0deg, transparent 270deg); }
+.tool-name-label { color: var(--bright); font-family: var(--mono); font-size: 12px; }
+.tool-status-label { color: var(--green); font-size: 11px; opacity: 0; transition: opacity 0.3s; }
+.tool-status-label.show { opacity: 1; }
+.tool-status-label.err  { color: var(--red); }
 
-  /* CodeMirror override */
-  .CodeMirror {
-    border: 1px solid var(--border);
-    font-family: var(--font);
-    font-size: 12px;
-    height: 180px;
-    background: var(--bg3);
-  }
-  .CodeMirror-focused { border-color: var(--green); }
-  .CodeMirror-scroll { padding: 4px; }
+.trace-tool-body {
+  display: none;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  animation: fadeIn 0.15s ease;
+}
+.trace-tool-body.open { display: block; }
+.trace-tool-section {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.trace-tool-section:last-child { border-bottom: none; }
+.trace-section-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+.trace-code {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 140px;
+  overflow-y: auto;
+  background: var(--bg);
+  padding: 6px 8px;
+  border-radius: 4px;
+}
 
-  .btn-row { display: flex; gap: 8px; }
-  .btn {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: var(--font);
-    font-size: 11px;
-    padding: 5px 14px;
-    cursor: pointer;
-    letter-spacing: 1px;
-    transition: color 0.15s, border-color 0.15s;
-  }
-  .btn:hover { color: var(--bright); border-color: var(--dim); }
-  .btn.primary:hover { color: var(--green); border-color: var(--green); }
-  .btn.danger:hover  { color: var(--red);   border-color: var(--red);   }
+/* ── markdown ── */
+.msg-content p { margin-bottom: 10px; }
+.msg-content p:last-child { margin-bottom: 0; }
+.msg-content h1,.msg-content h2,.msg-content h3 {
+  color: var(--bright);
+  font-size: 15px;
+  font-weight: 600;
+  margin: 14px 0 6px;
+}
+.msg-content code {
+  background: var(--surface2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--yellow);
+}
+.msg-content pre {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+.msg-content pre code { background: none; padding: 0; color: var(--text); font-size: 12.5px; }
+.msg-content ul, .msg-content ol { padding-left: 20px; margin-bottom: 10px; }
+.msg-content li { margin-bottom: 3px; }
+.msg-content blockquote {
+  border-left: 3px solid var(--dim);
+  padding-left: 14px;
+  color: var(--subtle);
+  margin: 8px 0;
+}
+.msg-content a { color: var(--blue); text-decoration: none; }
+.msg-content a:hover { text-decoration: underline; }
+.msg-content table { border-collapse: collapse; margin: 8px 0; width: 100%; }
+.msg-content th, .msg-content td {
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  font-size: 13px;
+  text-align: start;
+}
+.msg-content th { color: var(--bright); background: var(--surface); }
 
-  .status-msg {
-    font-size: 11px;
-    padding: 4px 0;
-    min-height: 20px;
-    transition: opacity 0.3s;
-  }
-  .status-msg.ok  { color: var(--green); }
-  .status-msg.err { color: var(--red); }
+/* streaming cursor */
+.stream-cursor {
+  display: inline-block;
+  width: 2px; height: 1em;
+  background: var(--subtle);
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  animation: blink 0.9s step-end infinite;
+}
 
-  /* ── animations ── */
-  @keyframes fadeIn       { from { opacity: 0; }                         to { opacity: 1; } }
-  @keyframes fadeSlideIn  { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-  @keyframes blink        { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+/* ── input area ── */
+#input-wrap {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  padding: 0 20px 24px;
+}
+#input-box {
+  width: 100%;
+  max-width: 720px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+  transition: border-color 0.15s;
+}
+#input-box:focus-within { border-color: var(--subtle); }
+#user-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--bright);
+  font-family: var(--font);
+  font-size: 14px;
+  padding: 12px 14px;
+  resize: none;
+  overflow-y: hidden;
+  min-height: 46px;
+  max-height: 180px;
+  line-height: 1.6;
+}
+#user-input::placeholder { color: var(--muted); }
+#send-btn {
+  flex-shrink: 0;
+  align-self: flex-end;
+  margin: 8px 8px 8px 0;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--font);
+  font-size: 12px;
+  padding: 5px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+  white-space: nowrap;
+}
+#send-btn:hover:not(:disabled) { color: var(--bright); border-color: var(--subtle); background: var(--surface2); }
+#send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ══════════════════════════════════════
+   CONFIG PAGE
+══════════════════════════════════════ */
+#page-config {
+  overflow-y: auto;
+  padding: 48px 20px 40px;
+  align-items: center;
+}
+.config-inner { width: 100%; max-width: 720px; }
+
+.config-section { margin-bottom: 36px; }
+.config-section-title {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.data-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+.data-table th {
+  text-align: start;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.data-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--dim);
+  font-size: 13px;
+  color: var(--text);
+  vertical-align: top;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: var(--surface2); }
+.badge {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-family: var(--mono);
+}
+.badge.valid   { color: var(--green); background: var(--green-dim); }
+.badge.invalid { color: var(--red);   background: rgba(248,81,73,0.12); }
+.badge.pending { color: var(--yellow);background: rgba(210,153,34,0.12); }
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.form-full { grid-column: 1 / -1; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label { font-size: 11px; color: var(--muted); letter-spacing: 0.05em; }
+.field input, .field select, .field textarea {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--bright);
+  font-family: var(--font);
+  font-size: 13px;
+  padding: 7px 10px;
+  outline: none;
+  border-radius: var(--radius);
+  transition: border-color 0.15s;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--subtle); }
+.field textarea { resize: vertical; min-height: 70px; }
+.field select { appearance: none; cursor: pointer; }
+
+.CodeMirror {
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  font-family: var(--mono) !important;
+  font-size: 12.5px !important;
+  height: 200px;
+}
+.CodeMirror-focused { border-color: var(--subtle) !important; }
+
+.btn-row { display: flex; gap: 8px; align-items: center; }
+.btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12px;
+  padding: 6px 16px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+.btn:hover { color: var(--bright); border-color: var(--subtle); background: var(--surface2); }
+.btn.primary { border-color: var(--subtle); color: var(--bright); }
+.btn.primary:hover { border-color: var(--green); color: var(--green); }
+.btn.danger:hover  { border-color: var(--red);   color: var(--red); }
+.status-msg { font-size: 12px; padding: 5px 0; min-height: 22px; }
+.status-msg.ok  { color: var(--green); }
+.status-msg.err { color: var(--red); }
+
+/* ── RTL support ── */
+[dir="rtl"] #agent-select { background-position: left 10px center; padding-left: 30px; padding-right: 10px; }
+[dir="rtl"] .msg-wrap.user .msg-content { text-align: right; }
+[dir="rtl"] .msg-wrap.assistant .msg-content { text-align: right; }
+[dir="rtl"] .msg-content blockquote { border-left: none; border-right: 3px solid var(--dim); padding-left: 0; padding-right: 14px; }
+[dir="rtl"] .msg-content ul, [dir="rtl"] .msg-content ol { padding-left: 0; padding-right: 20px; }
+
+/* ── animations ── */
+@keyframes fadeIn      { from { opacity: 0; }                              to { opacity: 1; } }
+@keyframes fadeSlideIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+@keyframes msgIn       { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes blink       { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes pulse       { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
+@keyframes spin        { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
-<div id="app">
 
-  <!-- TOP BAR -->
-  <div id="topbar">
-    <span class="logo">pi·agent</span>
-    <nav>
-      <a href="#" class="active" data-page="chat">chat</a>
-      <a href="#" data-page="config">config</a>
-    </nav>
-    <div class="spacer"></div>
-    <div id="llm-indicator">llm: <span id="llm-name-display">env default</span></div>
+<!-- ══ SIDEBAR TOGGLE ══ -->
+<button id="sb-toggle" title="menu" onclick="toggleSidebar()">
+  <svg width="15" height="12" viewBox="0 0 15 12" fill="none">
+    <rect x="0" y="0"  width="15" height="1.5" rx="0.75" fill="currentColor"/>
+    <rect x="0" y="5"  width="15" height="1.5" rx="0.75" fill="currentColor"/>
+    <rect x="0" y="10" width="15" height="1.5" rx="0.75" fill="currentColor"/>
+  </svg>
+</button>
+
+<!-- ══ SIDEBAR ══ -->
+<div id="sidebar">
+  <div id="sidebar-top">
+    <div id="sidebar-title">agent</div>
+    <div class="sb-label">active agent</div>
+    <select id="agent-select"><option value="">— select —</option></select>
+    <div id="session-display">no session</div>
+    <div id="llm-display">llm: <span id="llm-name-display">env default</span></div>
   </div>
 
-  <!-- ══ CHAT PAGE ══ -->
-  <div id="page-chat" class="page active">
-
-    <!-- sidebar: tool calls -->
-    <div id="sidebar">
-      <div id="sidebar-header">tool calls</div>
-      <div id="tool-calls"><p style="padding:10px;color:var(--dim);font-size:11px">no tool calls yet</p></div>
-    </div>
-
-    <!-- main chat -->
-    <div id="chat-main">
-      <div id="agent-bar">
-        <label>agent</label>
-        <select id="agent-select"><option value="">— select —</option></select>
-        <div id="session-id-display">no session</div>
-        <button id="new-session-btn">new session</button>
-      </div>
-      <div id="messages"></div>
-      <div id="input-area">
-        <span id="input-prompt">&gt;</span>
-        <textarea id="user-input" rows="1" placeholder="type a message..."></textarea>
-        <button id="send-btn">send</button>
-      </div>
-    </div>
+  <div id="sidebar-nav">
+    <button class="sb-nav-btn active" data-page="chat" onclick="navTo('chat',this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H5l-3 3V3z" stroke="currentColor" stroke-width="1.4"/></svg>
+      chat
+    </button>
+    <button class="sb-nav-btn" data-page="config" onclick="navTo('config',this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.22 3.22l1.42 1.42M11.36 11.36l1.42 1.42M3.22 12.78l1.42-1.42M11.36 4.64l1.42-1.42" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      config
+    </button>
   </div>
 
-  <!-- ══ CONFIG PAGE ══ -->
-  <div id="page-config" class="page">
+  <div id="sidebar-bottom">
+    <button class="sb-action-btn" onclick="newSession()">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      new session
+    </button>
+    <button class="sb-action-btn" onclick="toggleRTL()">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 3h10M1 6h7M1 9h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span id="rtl-label">enable RTL</span>
+    </button>
+  </div>
+</div>
+
+<div id="sb-overlay" onclick="closeSidebar()"></div>
+
+<!-- ══ CHAT PAGE ══ -->
+<div id="page-chat" class="page active">
+  <div id="messages"></div>
+  <div id="input-wrap">
+    <div id="input-box">
+      <textarea id="user-input" rows="1" placeholder="message the agent…"></textarea>
+      <button id="send-btn">send</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CONFIG PAGE ══ -->
+<div id="page-config" class="page">
+  <div class="config-inner">
 
     <!-- LLMs -->
     <div class="config-section">
@@ -517,12 +645,12 @@
         <thead><tr><th>name</th><th>model</th><th>base url</th><th>format</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
-      <div class="form-grid" id="llm-form">
+      <div class="form-grid">
         <div class="field"><label>name</label><input id="llm-name" placeholder="gpt4o"></div>
         <div class="field"><label>model name</label><input id="llm-model" placeholder="gpt-4o"></div>
         <div class="field"><label>base url</label><input id="llm-url" placeholder="https://api.openai.com/v1"></div>
-        <div class="field"><label>api key</label><input id="llm-key" type="password" placeholder="sk-..."></div>
-        <div class="field"><label>api format</label>
+        <div class="field"><label>api key</label><input id="llm-key" type="password" placeholder="sk-…"></div>
+        <div class="field"><label>format</label>
           <select id="llm-format">
             <option value="completion">completion</option>
             <option value="response">response</option>
@@ -543,7 +671,7 @@
         <thead><tr><th>name</th><th>llm</th><th>tools</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
-      <div class="form-grid" id="agent-form">
+      <div class="form-grid">
         <div class="field"><label>name</label><input id="ag-name" placeholder="my-agent"></div>
         <div class="field"><label>llm (optional)</label><input id="ag-llm" placeholder="leave blank for env default"></div>
         <div class="field form-full"><label>system prompt</label><textarea id="ag-prompt" rows="3"></textarea></div>
@@ -559,16 +687,16 @@
     <div class="config-section">
       <div class="config-section-title">dynamic tools</div>
       <table class="data-table" id="tool-table">
-        <thead><tr><th>name</th><th>status</th><th>entry point</th><th></th></tr></thead>
+        <thead><tr><th>name</th><th>status</th><th>entry</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
-      <div class="form-grid" id="tool-form">
-        <div class="field"><label>name</label><input id="t-name" placeholder="fetch_price"></div>
-        <div class="field"><label>entry point</label><input id="t-entry" placeholder="run" value="run"></div>
+      <div class="form-grid">
+        <div class="field"><label>name</label><input id="t-name" placeholder="fetch_data"></div>
+        <div class="field"><label>entry point</label><input id="t-entry" value="run" placeholder="run"></div>
         <div class="field form-full"><label>description</label><input id="t-desc" placeholder="What this tool does"></div>
         <div class="field form-full">
           <label>parameters (JSON schema)</label>
-          <textarea id="t-params" rows="3" placeholder='{ "type": "object", "properties": { "query": { "type": "string" } }, "required": ["query"] }'></textarea>
+          <textarea id="t-params" rows="3" placeholder='{"type":"object","properties":{"query":{"type":"string"}},"required":["query"]}'></textarea>
         </div>
         <div class="field form-full">
           <label>code (python)</label>
@@ -581,74 +709,100 @@
       <div class="status-msg" id="tool-status"></div>
     </div>
 
-  </div><!-- /page-config -->
-</div><!-- /app -->
+  </div>
+</div>
 
 <script>
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 // STATE
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 let currentAgent = null;
 let currentSessionId = null;
 let isStreaming = false;
 let codeEditor = null;
+let rtlEnabled = false;
 
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
+// SIDEBAR
+// ═══════════════════════════════════
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('sb-overlay');
+  const tog = document.getElementById('sb-toggle');
+  const open = sb.classList.toggle('open');
+  ov.classList.toggle('show', open);
+  tog.classList.toggle('shifted', open);
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sb-overlay').classList.remove('show');
+  document.getElementById('sb-toggle').classList.remove('shifted');
+}
+
+// ═══════════════════════════════════
 // NAV
-// ═══════════════════════════════════════════
-document.querySelectorAll('#topbar nav a').forEach(a => {
-  a.addEventListener('click', e => {
-    e.preventDefault();
-    const page = a.dataset.page;
-    document.querySelectorAll('#topbar nav a').forEach(x => x.classList.remove('active'));
-    a.classList.add('active');
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById('page-' + page).classList.add('active');
-    if (page === 'config') loadConfigData();
-  });
-});
+// ═══════════════════════════════════
+function navTo(page, btn) {
+  document.querySelectorAll('.sb-nav-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  if (page === 'config') loadConfigData();
+  closeSidebar();
+}
 
-// ═══════════════════════════════════════════
-// API HELPERS
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
+// RTL
+// ═══════════════════════════════════
+function toggleRTL() {
+  rtlEnabled = !rtlEnabled;
+  document.documentElement.dir = rtlEnabled ? 'rtl' : 'ltr';
+  document.getElementById('rtl-label').textContent = rtlEnabled ? 'disable RTL' : 'enable RTL';
+}
+
+// ═══════════════════════════════════
+// API
+// ═══════════════════════════════════
 const api = {
-  get:    (u)    => fetch(u).then(r => r.json()),
-  post:   (u,b)  => fetch(u, {method:'POST',  headers:{'Content-Type':'application/json'}, body:JSON.stringify(b)}).then(r => r.json()),
-  patch:  (u,b)  => fetch(u, {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(b)}).then(r => r.json()),
-  delete: (u)    => fetch(u, {method:'DELETE'}).then(r => r.json()),
+  get:    u    => fetch(u).then(r => r.json()),
+  post:   (u,b)=> fetch(u,{method:'POST',  headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(r=>r.json()),
+  patch:  (u,b)=> fetch(u,{method:'PATCH', headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(r=>r.json()),
+  delete: u    => fetch(u,{method:'DELETE'}).then(r=>r.json()),
 };
 
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 // INIT
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 async function init() {
   await loadAgentSelect();
   initCodeEditor();
 }
 
 async function loadAgentSelect() {
-  const agents = await api.get('/agents');
-  const sel = document.getElementById('agent-select');
-  const prev = sel.value;
-  sel.innerHTML = '<option value="">— select —</option>';
-  const list = Array.isArray(agents) ? agents : [agents];
-  list.forEach(a => {
-    const o = document.createElement('option');
-    o.value = a.name; o.textContent = a.name;
-    if (a.name === prev) o.selected = true;
-    sel.appendChild(o);
-  });
-  if (prev && list.find(a => a.name === prev)) currentAgent = prev;
+  try {
+    const data = await api.get('/agents');
+    const list = Array.isArray(data) ? data : (data && data.name ? [data] : []);
+    const sel = document.getElementById('agent-select');
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">— select —</option>';
+    list.forEach(a => {
+      const o = document.createElement('option');
+      o.value = a.name; o.textContent = a.name;
+      if (a.name === prev) o.selected = true;
+      sel.appendChild(o);
+    });
+    if (prev && list.find(a => a.name === prev)) currentAgent = prev;
+  } catch {}
 }
 
 document.getElementById('agent-select').addEventListener('change', function() {
   currentAgent = this.value || null;
   currentSessionId = null;
-  document.getElementById('session-id-display').textContent = 'no session';
-  updateLLMIndicator();
+  document.getElementById('session-display').textContent = 'no session';
+  updateLLMDisplay();
 });
 
-async function updateLLMIndicator() {
+async function updateLLMDisplay() {
   if (!currentAgent) { document.getElementById('llm-name-display').textContent = 'env default'; return; }
   try {
     const a = await api.get('/agents?name=' + encodeURIComponent(currentAgent));
@@ -656,36 +810,34 @@ async function updateLLMIndicator() {
   } catch {}
 }
 
-document.getElementById('new-session-btn').addEventListener('click', () => {
+function newSession() {
   currentSessionId = null;
-  document.getElementById('session-id-display').textContent = 'no session';
-  clearMessages();
-  clearToolCalls();
-});
+  document.getElementById('session-display').textContent = 'no session';
+  document.getElementById('messages').innerHTML = '';
+  closeSidebar();
+}
 
-// ═══════════════════════════════════════════
-// AUTO-EXPAND TEXTAREA
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
+// TEXTAREA AUTO-EXPAND
+// ═══════════════════════════════════
 const userInput = document.getElementById('user-input');
 userInput.addEventListener('input', function() {
   this.style.height = 'auto';
-  this.style.height = Math.min(this.scrollHeight, 160) + 'px';
+  this.style.height = Math.min(this.scrollHeight, 180) + 'px';
 });
 userInput.addEventListener('keydown', function(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
-  }
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 });
 document.getElementById('send-btn').addEventListener('click', sendMessage);
 
-// ═══════════════════════════════════════════
-// SEND MESSAGE
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
+// SEND
+// ═══════════════════════════════════
 async function sendMessage() {
   if (isStreaming) return;
   const text = userInput.value.trim();
-  if (!text || !currentAgent) return;
+  if (!text) return;
+  if (!currentAgent) { alert('select an agent first'); toggleSidebar(); return; }
 
   userInput.value = '';
   userInput.style.height = 'auto';
@@ -693,11 +845,16 @@ async function sendMessage() {
   isStreaming = true;
 
   appendUserMessage(text);
-  const { thinkingEl, contentEl, msgEl } = appendAssistantMessage();
+  const { traceEl, contentEl } = appendAssistantMessage();
 
   let thinkingText = '';
   let responseText = '';
-  let toolCallsInProgress = {};
+  let cursorEl = null;
+
+  // add streaming cursor
+  cursorEl = document.createElement('span');
+  cursorEl.className = 'stream-cursor';
+  contentEl.appendChild(cursorEl);
 
   try {
     const body = { agent_name: currentAgent, query: text };
@@ -719,331 +876,321 @@ async function sendMessage() {
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
       buffer = lines.pop();
+
       for (const line of lines) {
         if (!line.startsWith('data: ')) continue;
         let evt;
         try { evt = JSON.parse(line.slice(6)); } catch { continue; }
-        handleSSE(evt, { thinkingEl, contentEl, msgEl }, thinkingText, responseText, toolCallsInProgress);
-        if (evt.type === 'thinking_delta') thinkingText += evt.delta;
-        if (evt.type === 'text_delta')     responseText += evt.delta;
+
         if (evt.type === 'session_id') {
           currentSessionId = evt.session_id;
-          document.getElementById('session-id-display').textContent = 'session: ' + evt.session_id.slice(0, 8) + '...';
+          document.getElementById('session-display').textContent = evt.session_id.slice(0, 8) + '…';
         }
+
+        if (evt.type === 'thinking_delta') {
+          thinkingText += evt.delta;
+          updateThinking(traceEl, thinkingText);
+        }
+
+        if (evt.type === 'text_delta') {
+          responseText += evt.delta;
+          // remove cursor, re-render markdown, re-add cursor
+          if (cursorEl.parentNode) cursorEl.remove();
+          contentEl.innerHTML = marked.parse(responseText);
+          contentEl.appendChild(cursorEl);
+          scrollToBottom();
+        }
+
+        if (evt.type === 'tool_call') {
+          addToolTrace(traceEl, evt.tool_call_id, evt.tool_name, evt.arguments);
+        }
+
+        if (evt.type === 'tool_result') {
+          updateToolTrace(traceEl, evt.tool_call_id, evt.content, evt.is_error);
+        }
+
         if (evt.type === 'agent_end') break;
+
+        if (evt.type === 'error') {
+          if (cursorEl.parentNode) cursorEl.remove();
+          contentEl.innerHTML += `<p style="color:var(--red)">${escHtml(evt.message)}</p>`;
+          break;
+        }
       }
     }
   } catch(e) {
-    appendError(e.message);
+    if (cursorEl.parentNode) cursorEl.remove();
+    contentEl.innerHTML += `<p style="color:var(--red)">${escHtml(e.message)}</p>`;
   }
 
-  // finalize thinking cursor
-  const cursor = thinkingEl.querySelector('.thinking-cursor');
-  if (cursor) cursor.classList.add('done');
-  const label = thinkingEl.querySelector('.thinking-toggle span');
-  if (label && thinkingText) label.textContent = 'thinking';
-
+  // finalize
+  if (cursorEl.parentNode) cursorEl.remove();
+  finalizeThinking(traceEl);
   isStreaming = false;
   document.getElementById('send-btn').disabled = false;
   scrollToBottom();
 }
 
-function handleSSE(evt, { thinkingEl, contentEl }, thinkingText, responseText, toolCallsInProgress) {
-  if (evt.type === 'thinking_delta') {
-    const tc = thinkingEl.querySelector('.thinking-content');
-    const tog = thinkingEl.querySelector('.thinking-toggle');
-    tog.style.display = 'inline-flex';
-    tc.textContent = (tc.textContent || '') + evt.delta;
-    scrollToBottom();
-  }
-
-  if (evt.type === 'text_delta') {
-    // hide thinking cursor once text starts
-    const tog = thinkingEl.querySelector('.thinking-toggle');
-    if (tog) {
-      const cur = tog.querySelector('.thinking-cursor');
-      if (cur && !cur.classList.contains('done') && !thinkingText) {
-        tog.style.display = 'none'; // no thinking, hide entirely
-      }
-    }
-    responseText += evt.delta;
-    contentEl.innerHTML = marked.parse(responseText);
-    scrollToBottom();
-  }
-
-  if (evt.type === 'tool_call') {
-    toolCallsInProgress[evt.tool_call_id] = evt.tool_name;
-    addToolCallCard(evt.tool_call_id, evt.tool_name, evt.arguments);
-  }
-
-  if (evt.type === 'tool_result') {
-    updateToolCallCard(evt.tool_call_id, evt.content, evt.is_error);
-  }
-}
-
-// ═══════════════════════════════════════════
-// MESSAGE DOM HELPERS
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
+// MESSAGE DOM
+// ═══════════════════════════════════
 function appendUserMessage(text) {
-  const div = document.createElement('div');
-  div.className = 'msg user';
-  div.innerHTML = `
-    <div class="msg-meta">you</div>
-    <div class="msg-bubble">${escapeHtml(text)}</div>
-  `;
-  document.getElementById('messages').appendChild(div);
+  const wrap = document.createElement('div');
+  wrap.className = 'msg-wrap user';
+  const content = document.createElement('div');
+  content.className = 'msg-content';
+  content.dir = 'auto';
+  content.textContent = text;
+  wrap.appendChild(content);
+  document.getElementById('messages').appendChild(wrap);
   scrollToBottom();
 }
 
 function appendAssistantMessage() {
-  const msgEl = document.createElement('div');
-  msgEl.className = 'msg assistant';
+  const wrap = document.createElement('div');
+  wrap.className = 'msg-wrap assistant';
 
-  const thinkingEl = document.createElement('div');
-  thinkingEl.className = 'thinking-wrapper';
-  thinkingEl.innerHTML = `
-    <div class="thinking-toggle" style="display:inline-flex">
-      <span class="thinking-cursor">▋</span>
-      <span style="font-size:11px;color:var(--dim)">thinking...</span>
+  const traceEl = document.createElement('div');
+  traceEl.className = 'process-trace';
+  // thinking row (hidden until we get thinking_delta)
+  traceEl.innerHTML = `
+    <div class="trace-thinking" id="think-toggle-${Date.now()}" style="display:none">
+      <div class="thinking-dot pulse" id="think-dot-${Date.now()}"></div>
+      <span class="think-label">thinking…</span>
     </div>
-    <div class="thinking-content"></div>
+    <div class="trace-thinking-content"></div>
   `;
-  thinkingEl.querySelector('.thinking-toggle').addEventListener('click', () => {
-    thinkingEl.querySelector('.thinking-content').classList.toggle('open');
-  });
+  // wire toggle
+  const tt = traceEl.querySelector('.trace-thinking');
+  const tc = traceEl.querySelector('.trace-thinking-content');
+  tt.addEventListener('click', () => tc.classList.toggle('open'));
 
   const contentEl = document.createElement('div');
-  contentEl.className = 'msg-bubble';
+  contentEl.className = 'msg-content';
+  contentEl.dir = 'auto';
 
-  msgEl.appendChild(document.createElement('div')).className = 'msg-meta';
-  msgEl.querySelector('.msg-meta').textContent = 'assistant';
-  msgEl.appendChild(thinkingEl);
-  msgEl.appendChild(contentEl);
-  document.getElementById('messages').appendChild(msgEl);
+  wrap.appendChild(traceEl);
+  wrap.appendChild(contentEl);
+  document.getElementById('messages').appendChild(wrap);
   scrollToBottom();
-  return { thinkingEl, contentEl, msgEl };
+  return { traceEl, contentEl };
 }
 
-function appendError(msg) {
-  const div = document.createElement('div');
-  div.className = 'msg assistant';
-  div.innerHTML = `<div class="msg-meta" style="color:var(--red)">error</div><div class="msg-bubble" style="color:var(--red)">${escapeHtml(msg)}</div>`;
-  document.getElementById('messages').appendChild(div);
+function updateThinking(traceEl, text) {
+  const tt = traceEl.querySelector('.trace-thinking');
+  const tc = traceEl.querySelector('.trace-thinking-content');
+  tt.style.display = 'inline-flex';
+  tc.textContent = text;
   scrollToBottom();
 }
 
-function clearMessages() { document.getElementById('messages').innerHTML = ''; }
+function finalizeThinking(traceEl) {
+  const dot = traceEl.querySelector('.thinking-dot');
+  const label = traceEl.querySelector('.think-label');
+  if (dot) { dot.classList.remove('pulse'); dot.classList.add('done'); }
+  if (label) label.textContent = 'thought';
+}
+
+// ═══════════════════════════════════
+// TOOL TRACE
+// ═══════════════════════════════════
+function addToolTrace(traceEl, id, name, args) {
+  const row = document.createElement('div');
+  row.className = 'trace-tool';
+  row.id = 'tool-row-' + id;
+  row.innerHTML = `
+    <div class="trace-tool-header" onclick="toggleToolBody('${id}')">
+      <div class="tool-dot spin" id="tdot-${id}"></div>
+      <span class="tool-name-label">${escHtml(name)}</span>
+      <span class="tool-status-label" id="tstat-${id}"></span>
+    </div>
+    <div class="trace-tool-body" id="tbody-${id}">
+      <div class="trace-tool-section">
+        <div class="trace-section-label">input</div>
+        <div class="trace-code">${escHtml(JSON.stringify(args, null, 2))}</div>
+      </div>
+      <div id="tresult-${id}"></div>
+    </div>
+  `;
+  traceEl.appendChild(row);
+  scrollToBottom();
+}
+
+function toggleToolBody(id) {
+  document.getElementById('tbody-' + id).classList.toggle('open');
+}
+
+function updateToolTrace(traceEl, id, content, isError) {
+  const dot  = document.getElementById('tdot-' + id);
+  const stat = document.getElementById('tstat-' + id);
+  const res  = document.getElementById('tresult-' + id);
+
+  if (dot) {
+    dot.classList.remove('spin');
+    dot.classList.add(isError ? 'error' : 'done');
+  }
+  if (stat) {
+    stat.textContent = isError ? 'error' : '✓ done';
+    stat.classList.add('show');
+    if (isError) stat.classList.add('err');
+  }
+  if (res) {
+    res.innerHTML = `
+      <div class="trace-tool-section">
+        <div class="trace-section-label">output</div>
+        <div class="trace-code">${escHtml(String(content))}</div>
+      </div>
+    `;
+    // auto-open body to show result
+    const body = document.getElementById('tbody-' + id);
+    if (body) body.classList.add('open');
+  }
+  scrollToBottom();
+}
 
 function scrollToBottom() {
   const m = document.getElementById('messages');
   m.scrollTop = m.scrollHeight;
 }
 
-// ═══════════════════════════════════════════
-// TOOL CALL SIDEBAR
-// ═══════════════════════════════════════════
-function addToolCallCard(id, name, args) {
-  const tc = document.getElementById('tool-calls');
-  // remove placeholder
-  const ph = tc.querySelector('p');
-  if (ph) ph.remove();
-
-  const card = document.createElement('div');
-  card.className = 'tool-card';
-  card.dataset.id = id;
-  card.innerHTML = `
-    <div class="tool-card-header">
-      <div class="tool-status" id="ts-${id}"></div>
-      <div class="tool-name">${escapeHtml(name)}</div>
-      <div class="tool-toggle">▾</div>
-    </div>
-    <div class="tool-body" id="tb-${id}">
-      <div class="tool-section-label">INPUT</div>
-      <div class="tool-code">${escapeHtml(JSON.stringify(args, null, 2))}</div>
-      <div class="tool-section-label" id="tol-${id}" style="display:none">OUTPUT</div>
-      <div class="tool-code" id="to-${id}" style="display:none"></div>
-    </div>
-  `;
-  card.querySelector('.tool-card-header').addEventListener('click', () => {
-    card.querySelector('.tool-body').classList.toggle('open');
-  });
-  tc.appendChild(card);
-  tc.scrollTop = tc.scrollHeight;
-}
-
-function updateToolCallCard(id, content, isError) {
-  const status = document.getElementById('ts-' + id);
-  const outLabel = document.getElementById('tol-' + id);
-  const out = document.getElementById('to-' + id);
-  if (status) { status.classList.add(isError ? 'error' : 'done'); }
-  if (outLabel) outLabel.style.display = 'block';
-  if (out) { out.textContent = content; out.style.display = 'block'; }
-  // auto-open card on completion
-  const body = document.getElementById('tb-' + id);
-  if (body) body.classList.add('open');
-}
-
-function clearToolCalls() {
-  document.getElementById('tool-calls').innerHTML = '<p style="padding:10px;color:var(--dim);font-size:11px">no tool calls yet</p>';
-}
-
-// ═══════════════════════════════════════════
-// CONFIG DATA
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════
 async function loadConfigData() {
   await Promise.all([loadLLMTable(), loadAgentTable(), loadToolTable()]);
 }
 
 async function loadLLMTable() {
-  const data = await api.get('/llms');
-  const list = Array.isArray(data) ? data : [data];
-  const tbody = document.querySelector('#llm-table tbody');
-  tbody.innerHTML = '';
-  list.forEach(l => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${escapeHtml(l.name)}</td>
-      <td>${escapeHtml(l.model_name)}</td>
-      <td style="color:var(--dim);font-size:11px">${escapeHtml(l.base_url)}</td>
-      <td>${escapeHtml(l.api_format)}</td>
-      <td><button class="btn danger" onclick="deleteLLM('${escapeHtml(l.name)}')">del</button></td>
-    `;
-    tbody.appendChild(tr);
-  });
+  try {
+    const data = await api.get('/llms');
+    const list = Array.isArray(data) ? data : (data && data.name ? [data] : []);
+    const tbody = document.querySelector('#llm-table tbody');
+    tbody.innerHTML = '';
+    list.forEach(l => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${escHtml(l.name)}</td>
+        <td style="font-family:var(--mono);font-size:12px">${escHtml(l.model_name)}</td>
+        <td style="color:var(--muted);font-size:12px;font-family:var(--mono)">${escHtml(l.base_url)}</td>
+        <td>${escHtml(l.api_format)}</td>
+        <td><button class="btn danger" onclick="deleteLLM('${escHtml(l.name)}')">delete</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch {}
 }
 
 async function loadAgentTable() {
-  const data = await api.get('/agents');
-  const list = Array.isArray(data) ? data : [data];
-  const tbody = document.querySelector('#agent-table tbody');
-  tbody.innerHTML = '';
-  list.forEach(a => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${escapeHtml(a.name)}</td>
-      <td style="color:var(--blue)">${escapeHtml(a.llm_name || 'env default')}</td>
-      <td style="color:var(--dim);font-size:11px">${(a.tool_types||[]).join(', ')}</td>
-      <td><button class="btn danger" onclick="deleteAgent('${escapeHtml(a.name)}')">del</button></td>
-    `;
-    tbody.appendChild(tr);
-  });
-  // also refresh chat selector
-  await loadAgentSelect();
+  try {
+    const data = await api.get('/agents');
+    const list = Array.isArray(data) ? data : (data && data.name ? [data] : []);
+    const tbody = document.querySelector('#agent-table tbody');
+    tbody.innerHTML = '';
+    list.forEach(a => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${escHtml(a.name)}</td>
+        <td style="color:var(--blue);font-size:12px">${escHtml(a.llm_name || 'env default')}</td>
+        <td style="color:var(--muted);font-size:12px">${(a.tool_types||[]).join(', ')}</td>
+        <td><button class="btn danger" onclick="deleteAgent('${escHtml(a.name)}')">delete</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+    await loadAgentSelect();
+  } catch {}
 }
 
 async function loadToolTable() {
-  const data = await api.get('/tools');
-  const list = Array.isArray(data) ? data : [data];
-  const tbody = document.querySelector('#tool-table tbody');
-  tbody.innerHTML = '';
-  list.forEach(t => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${escapeHtml(t.name)}</td>
-      <td><span class="badge ${t.status}">${t.status}</span>${t.error ? `<br><span style="color:var(--red);font-size:10px">${escapeHtml(t.error)}</span>` : ''}</td>
-      <td>${escapeHtml(t.entry_point)}</td>
-      <td><button class="btn danger" onclick="deleteTool('${escapeHtml(t.name)}')">del</button></td>
-    `;
-    tbody.appendChild(tr);
-  });
+  try {
+    const data = await api.get('/tools');
+    const list = Array.isArray(data) ? data : (data && data.name ? [data] : []);
+    const tbody = document.querySelector('#tool-table tbody');
+    tbody.innerHTML = '';
+    list.forEach(t => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${escHtml(t.name)}</td>
+        <td><span class="badge ${t.status}">${t.status}</span>${t.error ? `<br><span style="color:var(--red);font-size:11px">${escHtml(t.error)}</span>` : ''}</td>
+        <td style="font-family:var(--mono);font-size:12px">${escHtml(t.entry_point)}</td>
+        <td><button class="btn danger" onclick="deleteTool('${escHtml(t.name)}')">delete</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch {}
 }
 
-// ── LLM save/delete ──
 async function saveLLM() {
   const body = {
-    name:       document.getElementById('llm-name').value.trim(),
+    name: document.getElementById('llm-name').value.trim(),
     model_name: document.getElementById('llm-model').value.trim(),
-    base_url:   document.getElementById('llm-url').value.trim(),
-    api_key:    document.getElementById('llm-key').value.trim(),
+    base_url: document.getElementById('llm-url').value.trim(),
+    api_key: document.getElementById('llm-key').value.trim(),
     api_format: document.getElementById('llm-format').value,
   };
-  if (!body.name || !body.model_name || !body.base_url || !body.api_key) {
-    setStatus('llm-status', 'all fields required', false); return;
-  }
+  if (!body.name||!body.model_name||!body.base_url||!body.api_key) { setStatus('llm-status','all fields required',false); return; }
   const res = await api.post('/llms', body);
-  if (res.name) { setStatus('llm-status', 'saved: ' + res.name, true); loadLLMTable(); }
-  else setStatus('llm-status', res.detail || 'error', false);
+  if (res.name) { setStatus('llm-status','saved: '+res.name,true); loadLLMTable(); }
+  else setStatus('llm-status', res.detail||'error', false);
 }
-async function deleteLLM(name) {
-  await api.delete('/llms?name=' + encodeURIComponent(name));
-  loadLLMTable();
-}
+async function deleteLLM(name) { await api.delete('/llms?name='+encodeURIComponent(name)); loadLLMTable(); }
 
-// ── Agent save/delete ──
 async function saveAgent() {
   const body = {
-    name:          document.getElementById('ag-name').value.trim(),
+    name: document.getElementById('ag-name').value.trim(),
     system_prompt: document.getElementById('ag-prompt').value.trim(),
-    tool_types:    document.getElementById('ag-tools').value.split(',').map(s=>s.trim()).filter(Boolean),
-    llm_name:      document.getElementById('ag-llm').value.trim() || null,
+    tool_types: document.getElementById('ag-tools').value.split(',').map(s=>s.trim()).filter(Boolean),
+    llm_name: document.getElementById('ag-llm').value.trim() || null,
   };
-  if (!body.name || !body.system_prompt) { setStatus('agent-status', 'name and prompt required', false); return; }
+  if (!body.name||!body.system_prompt) { setStatus('agent-status','name and prompt required',false); return; }
   const res = await api.post('/agents', body);
-  if (res.name) { setStatus('agent-status', 'saved: ' + res.name, true); loadAgentTable(); }
-  else setStatus('agent-status', res.detail || 'error', false);
+  if (res.name) { setStatus('agent-status','saved: '+res.name,true); loadAgentTable(); }
+  else setStatus('agent-status', res.detail||'error', false);
 }
-async function deleteAgent(name) {
-  await api.delete('/agents?name=' + encodeURIComponent(name));
-  loadAgentTable();
-}
+async function deleteAgent(name) { await api.delete('/agents?name='+encodeURIComponent(name)); loadAgentTable(); }
 
-// ── Tool save/delete ──
 function initCodeEditor() {
   codeEditor = CodeMirror.fromTextArea(document.getElementById('t-code-raw'), {
-    mode: 'python',
-    theme: 'monokai',
-    lineNumbers: true,
-    indentUnit: 4,
-    tabSize: 4,
-    indentWithTabs: false,
-    lineWrapping: false,
-    value: 'def run(query: str) -> str:\n    r = requests.get("https://example.com", params={"q": query})\n    return r.text\n',
+    mode: 'python', theme: 'monokai', lineNumbers: true,
+    indentUnit: 4, tabSize: 4, indentWithTabs: false,
   });
-  codeEditor.setValue('def run(query: str) -> str:\n    r = requests.get("https://example.com", params={"q": query})\n    return r.text\n');
+  codeEditor.setValue('def run(query: str) -> str:\n    return query\n');
 }
 async function saveTool() {
   let params;
   try { params = JSON.parse(document.getElementById('t-params').value || '{}'); }
-  catch { setStatus('tool-status', 'invalid JSON in parameters', false); return; }
+  catch { setStatus('tool-status','invalid JSON in parameters',false); return; }
   const body = {
-    name:        document.getElementById('t-name').value.trim(),
+    name: document.getElementById('t-name').value.trim(),
     description: document.getElementById('t-desc').value.trim(),
-    parameters:  params,
-    code:        codeEditor ? codeEditor.getValue() : '',
+    parameters: params,
+    code: codeEditor ? codeEditor.getValue() : '',
     entry_point: document.getElementById('t-entry').value.trim() || 'run',
   };
-  if (!body.name || !body.description || !body.code) {
-    setStatus('tool-status', 'name, description and code required', false); return;
-  }
+  if (!body.name||!body.description||!body.code) { setStatus('tool-status','name, description and code required',false); return; }
   const res = await api.post('/tools', body);
   if (res.name) {
     const ok = res.status === 'valid';
-    setStatus('tool-status', ok ? 'registered: ' + res.name : 'saved (invalid): ' + (res.error || ''), ok);
+    setStatus('tool-status', ok ? 'registered: '+res.name : 'saved with error: '+(res.error||''), ok);
     loadToolTable();
-  } else setStatus('tool-status', res.detail || 'error', false);
+  } else setStatus('tool-status', res.detail||'error', false);
 }
-async function deleteTool(name) {
-  await api.delete('/tools?name=' + encodeURIComponent(name));
-  loadToolTable();
-}
+async function deleteTool(name) { await api.delete('/tools?name='+encodeURIComponent(name)); loadToolTable(); }
 
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 // UTILS
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 function setStatus(id, msg, ok) {
   const el = document.getElementById(id);
   el.textContent = msg;
   el.className = 'status-msg ' + (ok ? 'ok' : 'err');
   setTimeout(() => { el.textContent = ''; el.className = 'status-msg'; }, 4000);
 }
-
-function escapeHtml(str) {
+function escHtml(str) {
   if (typeof str !== 'string') str = JSON.stringify(str) || '';
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 marked.setOptions({ breaks: true, gfm: true });
-
 init();
 </script>
 </body>
