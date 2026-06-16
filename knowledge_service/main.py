@@ -14,15 +14,17 @@ from fastapi.staticfiles import StaticFiles
 from .models import (
     LLMConfig, LLMCreateRequest, LLMUpdateRequest,
     DynamicTool, ToolCreateRequest, ToolUpdateRequest, ToolStatus,
+    Skill, SkillCreateRequest, SkillUpdateRequest,
     AgentResponse, AgentCreateRequest, AgentUpdateRequest,
     SessionInfo,
     AskRequest, AskResponse,
 )
 from .tools import BUILTIN_TOOL_DEFINITIONS
 from .tool_storage import dynamic_tool_storage, validate_tool_code
+from .skill_storage import skill_storage
 from .llm_storage import llm_storage
 from .agents import agent_manager
-from pi_bridge.types import TextDeltaEvent, AgentEndEvent, ErrorEvent
+from pi_bridge.types import TextDeltaEvent, AgentEndEvent, ErrorEvent, SkillAccessEvent
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
@@ -34,24 +36,25 @@ app = FastAPI(
     openapi_tags=[
         {
             "name": "LLMs",
-            "description": "Manage LLM configurations. If no LLM is assigned to an agent, "
-                           "the service falls back to the environment variables "
-                           "(`OPENAI_API_BASE`, `OPENAI_API_KEY`, `OPENAI_MODEL`).",
+            "description": "Manage LLM configurations.",
         },
         {
             "name": "Tools",
-            "description": "Register, inspect, update, and delete dynamic tools. "
-                           "Built-in tools are read-only and always appear in GET responses.",
+            "description": "Register, inspect, update, and delete dynamic tools.",
+        },
+        {
+            "name": "Skills",
+            "description": "Create and manage skills. A skill injects instructions into the agent's "
+                           "system prompt and optionally restricts which tools it may use.",
         },
         {
             "name": "Agents",
             "description": "Create and manage agents. Each agent has a system prompt, "
-                           "a list of tools, and an optional LLM assignment.",
+                           "a list of tools, a list of skills, and an optional LLM assignment.",
         },
         {
             "name": "Ask",
-            "description": "Send a query to an agent. Use `/ask` for a blocking response "
-                           "or `/ask/stream` for a real-time SSE stream.",
+            "description": "Send a query to an agent.",
         },
         {
             "name": "Sessions",
@@ -60,7 +63,6 @@ app = FastAPI(
     ],
 )
 
-# Serve static files (CSS, JS if ever split out)
 if _STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
@@ -71,7 +73,6 @@ if _STATIC_DIR.exists():
 
 @app.get("/", include_in_schema=False)
 async def serve_ui():
-    """Serve the terminal UI."""
     index = _STATIC_DIR / "index.html"
     if not index.exists():
         raise HTTPException(status_code=404, detail="UI not found")
@@ -84,7 +85,6 @@ async def serve_ui():
 
 @app.get("/llms", response_model=Union[LLMConfig, List[LLMConfig]], tags=["LLMs"])
 async def get_llms(name: Optional[str] = None):
-    """Get one LLM config by name, or list all registered LLMs."""
     if name:
         llm = llm_storage.get(name)
         if not llm:
@@ -95,7 +95,6 @@ async def get_llms(name: Optional[str] = None):
 
 @app.post("/llms", response_model=LLMConfig, status_code=201, tags=["LLMs"])
 async def create_llm(request: LLMCreateRequest):
-    """Register a new LLM configuration."""
     llm = LLMConfig(**request.model_dump())
     llm_storage.add(llm)
     return llm
@@ -103,7 +102,6 @@ async def create_llm(request: LLMCreateRequest):
 
 @app.patch("/llms", response_model=LLMConfig, tags=["LLMs"])
 async def update_llm(name: str, request: LLMUpdateRequest):
-    """Partially update an LLM config. Invalidates sessions using this LLM."""
     existing = llm_storage.get(name)
     if not existing:
         raise HTTPException(status_code=404, detail=f"LLM '{name}' not found")
@@ -121,7 +119,6 @@ async def update_llm(name: str, request: LLMUpdateRequest):
 
 @app.delete("/llms", tags=["LLMs"])
 async def delete_llm(name: str):
-    """Delete an LLM config. Sessions using it are closed."""
     if not llm_storage.delete(name):
         raise HTTPException(status_code=404, detail=f"LLM '{name}' not found")
     agent_manager.invalidate_sessions_for_llm(name)
@@ -134,7 +131,6 @@ async def delete_llm(name: str):
 
 @app.get("/tools", response_model=Union[DynamicTool, List[DynamicTool]], tags=["Tools"])
 async def get_tools(name: Optional[str] = None):
-    """Get one tool by name, or list all (built-in + dynamic)."""
     all_tools: list[DynamicTool] = [
         DynamicTool(
             name=d["name"],
@@ -156,7 +152,6 @@ async def get_tools(name: Optional[str] = None):
 
 @app.post("/tools", response_model=DynamicTool, status_code=201, tags=["Tools"])
 async def create_tool(request: ToolCreateRequest):
-    """Register a new dynamic tool. Code is validated immediately on submission."""
     error = validate_tool_code(request.code, request.entry_point)
     status = ToolStatus.invalid if error else ToolStatus.valid
     tool = DynamicTool(
@@ -174,7 +169,6 @@ async def create_tool(request: ToolCreateRequest):
 
 @app.patch("/tools", response_model=DynamicTool, tags=["Tools"])
 async def update_tool(name: str, request: ToolUpdateRequest):
-    """Partially update a dynamic tool. Code is re-validated if changed."""
     existing = dynamic_tool_storage.get(name)
     if not existing:
         raise HTTPException(status_code=404, detail=f"Tool '{name}' not found")
@@ -195,10 +189,58 @@ async def update_tool(name: str, request: ToolUpdateRequest):
 
 @app.delete("/tools", tags=["Tools"])
 async def delete_tool(name: str):
-    """Delete a dynamic tool and invalidate any sessions that use it."""
     if not dynamic_tool_storage.delete(name):
         raise HTTPException(status_code=404, detail=f"Tool '{name}' not found")
     agent_manager.invalidate_sessions_for_tool(name)
+    return {"status": "deleted", "name": name}
+
+
+# ===========================================================================
+# SKILLS
+# ===========================================================================
+
+@app.get("/skills", response_model=Union[Skill, List[Skill]], tags=["Skills"])
+async def get_skills(name: Optional[str] = None):
+    """Get one skill by name, or list all skills."""
+    if name:
+        skill = skill_storage.get(name)
+        if not skill:
+            raise HTTPException(status_code=404, detail=f"Skill '{name}' not found")
+        return skill
+    return skill_storage.list_all()
+
+
+@app.post("/skills", response_model=Skill, status_code=201, tags=["Skills"])
+async def create_skill(request: SkillCreateRequest):
+    """Create a new skill."""
+    skill = Skill(**request.model_dump())
+    skill_storage.add(skill)
+    return skill
+
+
+@app.patch("/skills", response_model=Skill, tags=["Skills"])
+async def update_skill(name: str, request: SkillUpdateRequest):
+    """Partially update a skill. Invalidates sessions using this skill."""
+    existing = skill_storage.get(name)
+    if not existing:
+        raise HTTPException(status_code=404, detail=f"Skill '{name}' not found")
+    updated = Skill(
+        name=name,
+        description=request.description   if request.description   is not None else existing.description,
+        content=request.content           if request.content        is not None else existing.content,
+        allowed_tools=request.allowed_tools if request.allowed_tools is not None else existing.allowed_tools,
+    )
+    skill_storage.update(name, updated)
+    agent_manager.invalidate_sessions_for_skill(name)
+    return updated
+
+
+@app.delete("/skills", tags=["Skills"])
+async def delete_skill(name: str):
+    """Delete a skill. Invalidates sessions using this skill."""
+    if not skill_storage.delete(name):
+        raise HTTPException(status_code=404, detail=f"Skill '{name}' not found")
+    agent_manager.invalidate_sessions_for_skill(name)
     return {"status": "deleted", "name": name}
 
 
@@ -208,7 +250,6 @@ async def delete_tool(name: str):
 
 @app.get("/agents", response_model=Union[AgentResponse, List[AgentResponse]], tags=["Agents"])
 async def get_agents(name: Optional[str] = None):
-    """Get one agent by name, or list all agents."""
     if name:
         agent = agent_manager.get_agent(name)
         if not agent:
@@ -219,7 +260,6 @@ async def get_agents(name: Optional[str] = None):
 
 @app.post("/agents", response_model=AgentResponse, status_code=201, tags=["Agents"])
 async def create_agent(request: AgentCreateRequest):
-    """Create a new agent. Set `llm_name` to assign a specific LLM, or omit to use the env default."""
     try:
         return agent_manager.create_agent(request)
     except Exception as e:
@@ -228,13 +268,6 @@ async def create_agent(request: AgentCreateRequest):
 
 @app.patch("/agents", response_model=AgentResponse, tags=["Agents"])
 async def update_agent(name: str, request: AgentUpdateRequest):
-    """
-    Partially update an agent.
-
-    - Set `llm_name` to a registered LLM name to switch the agent's LLM.
-    - Set `llm_name` to `""` (empty string) to revert to the env default.
-    - Omit `llm_name` to leave it unchanged.
-    """
     updated = agent_manager.update_agent(name, request)
     if not updated:
         raise HTTPException(status_code=404, detail=f"Agent '{name}' not found")
@@ -243,7 +276,6 @@ async def update_agent(name: str, request: AgentUpdateRequest):
 
 @app.delete("/agents", tags=["Agents"])
 async def delete_agent(name: str):
-    """Delete an agent and close all its active sessions."""
     if not agent_manager.delete_agent(name):
         raise HTTPException(status_code=404, detail=f"Agent '{name}' not found")
     return {"status": "deleted", "name": name}
@@ -255,12 +287,6 @@ async def delete_agent(name: str):
 
 @app.post("/ask", response_model=AskResponse, tags=["Ask"])
 async def ask(request: AskRequest):
-    """
-    Send a query to an agent and get a full response.
-
-    - Omit `session_id` for a stateless one-shot question.
-    - Provide a `session_id` to start or continue a multi-turn conversation.
-    """
     try:
         session, sid = agent_manager.get_or_create_session(request.agent_name, request.session_id)
         full_response = ""
@@ -283,9 +309,9 @@ async def ask(request: AskRequest):
 @app.post("/ask/stream", tags=["Ask"])
 async def ask_stream(request: AskRequest):
     """
-    Send a query and stream the response as Server-Sent Events.
+    Stream the agent response as SSE.
 
-    First event is always `{"type": "session_id", "session_id": "..."}`.
+    Event types: session_id | text_delta | skill_access | agent_end | error
     """
     async def event_generator():
         try:
@@ -312,6 +338,8 @@ async def ask_stream(request: AskRequest):
                     break
                 if isinstance(event, TextDeltaEvent):
                     yield f"data: {json.dumps({'type': 'text_delta', 'delta': event.delta})}\n\n"
+                elif isinstance(event, SkillAccessEvent):
+                    yield f"data: {json.dumps({'type': 'skill_access', 'skill_name': event.skill_name})}\n\n"
                 elif isinstance(event, AgentEndEvent):
                     yield f"data: {json.dumps({'type': 'agent_end', 'stop_reason': event.stop_reason, 'session_id': sid})}\n\n"
                     break
@@ -332,7 +360,6 @@ async def ask_stream(request: AskRequest):
 
 @app.get("/sessions", response_model=Union[SessionInfo, List[SessionInfo]], tags=["Sessions"])
 async def get_sessions(session_id: Optional[str] = None):
-    """List all active sessions, or get one by session_id."""
     if session_id:
         match = next((s for s in agent_manager.list_sessions() if s.session_id == session_id), None)
         if not match:
@@ -343,7 +370,6 @@ async def get_sessions(session_id: Optional[str] = None):
 
 @app.delete("/sessions", tags=["Sessions"])
 async def close_session(session_id: str):
-    """Close and destroy an active session."""
     if not agent_manager.close_session(session_id):
         raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
     return {"status": "closed", "session_id": session_id}

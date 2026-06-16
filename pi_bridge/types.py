@@ -25,6 +25,14 @@ class CustomTool:
     prompt_guidelines: list[str] = field(default_factory=list)
 
 
+@dataclass
+class Skill:
+    name: str
+    description: str
+    content: str                    # raw markdown body injected into system prompt
+    allowed_tools: list[str] = field(default_factory=list)  # empty = all tools allowed
+
+
 # ---------------------------------------------------------------------------
 # Response events
 # ---------------------------------------------------------------------------
@@ -59,6 +67,12 @@ class ToolResultEvent:
 
 
 @dataclass
+class SkillAccessEvent:
+    skill_name: str
+    type: str = "skill_access"
+
+
+@dataclass
 class TurnEndEvent:
     type: str = "turn_end"
 
@@ -80,6 +94,7 @@ ResponseEvent = (
     | ThinkingDeltaEvent
     | ToolCallEvent
     | ToolResultEvent
+    | SkillAccessEvent
     | TurnEndEvent
     | AgentEndEvent
     | ErrorEvent

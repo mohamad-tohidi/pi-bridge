@@ -7,11 +7,12 @@ import uuid
 from dotenv import load_dotenv; load_dotenv()
 
 from pi_bridge.session import PiSession
-from pi_bridge.types import Provider, Model, CustomTool
+from pi_bridge.types import Provider, Model, CustomTool, Skill as SkillType
 from .models import AgentResponse, AgentCreateRequest, AgentUpdateRequest, SessionInfo, ToolStatus, LLMConfig
 from .tools import BUILTIN_TOOLS, make_sync, BUILTIN_TOOL_DEFINITIONS
 from .storage import storage
 from .tool_storage import dynamic_tool_storage, build_tool_callable
+from .skill_storage import skill_storage
 from .llm_storage import llm_storage
 
 # ---------------------------------------------------------------------------
@@ -28,7 +29,6 @@ _ENV_LLM = LLMConfig(
 
 
 def _resolve_llm(llm_name: Optional[str]) -> LLMConfig:
-    """Return the LLMConfig for llm_name, falling back to env if None or not found."""
     if llm_name:
         found = llm_storage.get(llm_name)
         if found:
@@ -66,6 +66,7 @@ class AgentManager:
             name=request.name,
             system_prompt=system_prompt,
             tool_types=request.tool_types,
+            skill_names=request.skill_names,
             llm_name=request.llm_name or None,
             behavior_config=request.behavior_config,
         )
@@ -82,7 +83,6 @@ class AgentManager:
         agent = storage.get_agent(name)
         if not agent:
             return None
-        # empty string means "revert to env default"
         new_llm = (
             None if request.llm_name == ""
             else (request.llm_name if request.llm_name is not None else agent.llm_name)
@@ -91,6 +91,7 @@ class AgentManager:
             name=name,
             system_prompt=request.system_prompt     if request.system_prompt    is not None else agent.system_prompt,
             tool_types=request.tool_types            if request.tool_types       is not None else agent.tool_types,
+            skill_names=request.skill_names          if request.skill_names      is not None else agent.skill_names,
             llm_name=new_llm,
             behavior_config=request.behavior_config if request.behavior_config  is not None else agent.behavior_config,
         )
@@ -145,15 +146,25 @@ class AgentManager:
         stale = [
             sid for sid, (_, agent_name, _llm) in self._sessions.items()
             if tool_name in (storage.get_agent(agent_name) or AgentResponse(
-                name="", system_prompt="", tool_types=[], llm_name=None, behavior_config={}
+                name="", system_prompt="", tool_types=[], skill_names=[], llm_name=None, behavior_config={}
             )).tool_types
         ]
         for sid in stale:
             self._sessions[sid][0].close()
             del self._sessions[sid]
 
+    def invalidate_sessions_for_skill(self, skill_name: str):
+        stale = [
+            sid for sid, (_, agent_name, _llm) in self._sessions.items()
+            if skill_name in (storage.get_agent(agent_name) or AgentResponse(
+                name="", system_prompt="", tool_types=[], skill_names=[], llm_name=None, behavior_config={}
+            )).skill_names
+        ]
+        for sid in stale:
+            self._sessions[sid][0].close()
+            del self._sessions[sid]
+
     def invalidate_sessions_for_llm(self, llm_name: str):
-        """Close all sessions that were built with the given LLM."""
         stale = [sid for sid, (_, _agent, lname) in self._sessions.items() if lname == llm_name]
         for sid in stale:
             self._sessions[sid][0].close()
@@ -171,8 +182,31 @@ class AgentManager:
         llm = _resolve_llm(agent.llm_name)
         provider, model = _llm_to_provider_model(llm)
 
+        # --- Resolve skills ---
+        skills: list[SkillType] = []
+        for skill_name in agent.skill_names:
+            stored = skill_storage.get(skill_name)
+            if stored:
+                skills.append(SkillType(
+                    name=stored.name,
+                    description=stored.description,
+                    content=stored.content,
+                    allowed_tools=stored.allowed_tools,
+                ))
+
+        # --- Resolve tools ---
+        # If any skill has allowed_tools, restrict to union of all allowed sets
+        # (only if at least one skill actually restricts)
+        restricted_sets = [set(s.allowed_tools) for s in skills if s.allowed_tools]
+        allowed_tool_names: Optional[set[str]] = None
+        if restricted_sets:
+            allowed_tool_names = set().union(*restricted_sets)
+
         custom_tools: list[CustomTool] = []
         for tool_type in agent.tool_types:
+            if allowed_tool_names is not None and tool_type not in allowed_tool_names:
+                continue  # skill restriction excludes this tool
+
             if tool_type in BUILTIN_TOOLS:
                 fn = make_sync(BUILTIN_TOOLS[tool_type])
                 tool_def = next((t for t in BUILTIN_TOOL_DEFINITIONS if t["name"] == tool_type), None)
@@ -194,13 +228,21 @@ class AgentManager:
                     fn=build_tool_callable(dyn),
                 ))
 
+        # --- Build system prompt: base + skill content blocks ---
+        system_prompt = agent.system_prompt
+        if skills:
+            skill_blocks = "\n\n".join(
+                f"## Skill: {s.name}\n{s.content}" for s in skills
+            )
+            system_prompt = f"{system_prompt}\n\n---\n{skill_blocks}"
+
         session = PiSession(
             provider=provider,
             model=model,
-            system_prompt=agent.system_prompt,
+            system_prompt=system_prompt,
             custom_tools=custom_tools,
+            skills=skills,
         )
-        # return llm_name so session tracking knows which LLM was used
         return session, (agent.llm_name if agent.llm_name else None)
 
 

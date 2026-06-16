@@ -78,6 +78,30 @@ class ToolDefinition(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Skills
+# ---------------------------------------------------------------------------
+
+class Skill(BaseModel):
+    name:          str
+    description:   str
+    content:       str              # markdown instructions injected into system prompt
+    allowed_tools: List[str] = Field(default_factory=list)  # empty = all tools
+
+
+class SkillCreateRequest(BaseModel):
+    name:          str
+    description:   str
+    content:       str
+    allowed_tools: List[str] = Field(default_factory=list)
+
+
+class SkillUpdateRequest(BaseModel):
+    description:   Optional[str]       = None
+    content:       Optional[str]       = None
+    allowed_tools: Optional[List[str]] = None
+
+
+# ---------------------------------------------------------------------------
 # Agents
 # ---------------------------------------------------------------------------
 
@@ -85,6 +109,7 @@ class AgentCreateRequest(BaseModel):
     name:            str
     system_prompt:   str
     tool_types:      List[str]
+    skill_names:     List[str] = Field(default_factory=list)
     llm_name:        Optional[str] = None  # None = use env default
     behavior_config: Dict[str, Any] = Field(default_factory=dict)
 
@@ -92,6 +117,7 @@ class AgentCreateRequest(BaseModel):
 class AgentUpdateRequest(BaseModel):
     system_prompt:   Optional[str]           = None
     tool_types:      Optional[List[str]]      = None
+    skill_names:     Optional[List[str]]      = None
     llm_name:        Optional[str]            = None  # set to "" to revert to default
     behavior_config: Optional[Dict[str, Any]] = None
 
@@ -100,6 +126,7 @@ class AgentResponse(BaseModel):
     name:            str
     system_prompt:   str
     tool_types:      List[str]
+    skill_names:     List[str] = Field(default_factory=list)
     llm_name:        Optional[str]  # None = using env default
     behavior_config: Dict[str, Any]
 
