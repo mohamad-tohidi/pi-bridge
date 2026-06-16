@@ -1,7 +1,7 @@
 {
   "type": "module",
   "dependencies": {
-    "@earendil-works/pi-agent-core": "latest",
+    "@earendil-works/pi-coding-agent": "latest",
     "@earendil-works/pi-ai": "latest",
     "typebox": "latest"
   }

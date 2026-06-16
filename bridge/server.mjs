@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Pi-Bridge Server
- * Bridges Python <-> pi-agent-core via JSONL stdin/stdout.
+ * Bridges Python <-> pi-coding-agent SDK via JSONL stdin/stdout.
  *
  * Protocol:
  *   stdin:  JSON lines (init msg, then commands)
@@ -9,9 +9,17 @@
  */
 
 import { createInterface } from 'readline';
-import { Agent } from '@earendil-works/pi-agent-core';
 import { getModel } from '@earendil-works/pi-ai';
 import { Type } from 'typebox';
+import {
+    AuthStorage,
+    ModelRegistry,
+    SessionManager,
+    SettingsManager,
+    DefaultResourceLoader,
+    createAgentSession,
+    defineTool,
+} from '@earendil-works/pi-coding-agent';
 
 // ---------------------------------------------------------------------------
 // Utilities
@@ -58,7 +66,7 @@ function jsonSchemaToTypebox(schema) {
         for (const k of ['anyOf', 'oneOf', 'allOf', '$ref']) {
             if (k in s) throw new Error(`Unsupported JSON Schema keyword: ${k}`);
         }
-        const { type, description, enum: enumValues, items, properties, required, ...rest } = s;
+        const { type, description, enum: enumValues, items, properties, required } = s;
         const opts = {};
         if (description) opts.description = description;
         if (enumValues && Array.isArray(enumValues)) {
@@ -106,7 +114,6 @@ function buildModel(providerName, modelConfig, baseUrl) {
         normalizedBaseUrl = trimmed.endsWith('/v1') ? trimmed : `${trimmed}/v1`;
     }
 
-    // Try known model first
     let model = getModel(providerName, modelConfig.name);
     if (model) {
         model = { ...model, api: apiField, baseUrl: normalizedBaseUrl, provider: providerName };
@@ -169,11 +176,12 @@ const {
     model: modelConfig,
     system_prompt = '',
     custom_tools: customToolDefs = [],
+    skills: skillDefs = [],
 } = initMsg;
 
 // Validate thinking level
-const thinkingVal = modelConfig.thinking ?? null;
-if (thinkingVal !== null && !VALID_LEVELS.has(thinkingVal)) {
+const thinkingVal = modelConfig.thinking ?? 'off';
+if (!VALID_LEVELS.has(thinkingVal)) {
     emit({ type: 'error', message: `Unsupported thinking value: "${thinkingVal}". Valid values: ${[...VALID_LEVELS].join(', ')}` });
     process.exit(1);
 }
@@ -192,10 +200,10 @@ try {
 const pendingTools = new Map();
 
 // ---------------------------------------------------------------------------
-// Build AgentTool definitions
+// Build custom AgentTool definitions
 // ---------------------------------------------------------------------------
 
-const agentTools = [];
+const customTools = [];
 for (const toolDef of customToolDefs) {
     let parameters;
     try {
@@ -205,7 +213,7 @@ for (const toolDef of customToolDefs) {
         process.exit(1);
     }
 
-    agentTools.push({
+    customTools.push(defineTool({
         name: toolDef.name,
         label: toolDef.name,
         description: toolDef.description,
@@ -233,33 +241,75 @@ for (const toolDef of customToolDefs) {
             }
             return {
                 content: [{ type: 'text', text: contentStr }],
-                details: null,
+                details: {},
             };
         },
-    });
+    }));
 }
 
 // ---------------------------------------------------------------------------
-// Create Agent (pi-agent-core)
+// Build skills list
+// skillDefs: [{ name, description, content, allowed_tools? }]
+// content is the raw markdown body of the skill (no file path needed)
 // ---------------------------------------------------------------------------
 
-const thinkingLevel = (!thinkingVal || thinkingVal === 'off') ? undefined : thinkingVal;
+const skills = skillDefs.map((s) => ({
+    name: s.name,
+    description: s.description,
+    // Virtual skill — no file path, inline content via source field
+    filePath: s.name,
+    baseDir: '.',
+    source: 'custom',
+    content: s.content ?? '',
+    allowedTools: s.allowed_tools ?? null,
+}));
 
-const agent = new Agent({
-    initialState: {
-        systemPrompt: system_prompt,
-        model: piModel,
-        thinkingLevel: thinkingLevel,
-        tools: agentTools,
-    },
-    getApiKey: async () => providerConfig.api_key ?? '',
+// ---------------------------------------------------------------------------
+// Set up auth, registry, loader, session
+// ---------------------------------------------------------------------------
+
+const authStorage = AuthStorage.create();
+authStorage.setRuntimeApiKey(providerName, providerConfig.api_key ?? '');
+
+const modelRegistry = ModelRegistry.inMemory(authStorage);
+
+const systemPrompt = system_prompt || 'You are a helpful assistant. Answer clearly and concisely.';
+
+const loader = new DefaultResourceLoader({
+    systemPromptOverride: () => systemPrompt,
+    ...(skills.length > 0 ? {
+        skillsOverride: (current) => ({
+            skills: [...current.skills, ...skills],
+            diagnostics: current.diagnostics,
+        }),
+    } : {}),
 });
+await loader.reload();
+
+let session;
+try {
+    const result = await createAgentSession({
+        model: piModel,
+        thinkingLevel: thinkingVal === 'off' ? undefined : thinkingVal,
+        authStorage,
+        modelRegistry,
+        noTools: 'builtin',      // strip ALL coding agent built-in tools
+        customTools,
+        resourceLoader: loader,
+        sessionManager: SessionManager.inMemory(),
+        settingsManager: SettingsManager.inMemory({ compaction: { enabled: false } }),
+    });
+    session = result.session;
+} catch (e) {
+    emit({ type: 'error', message: `Failed to create session: ${e.message}` });
+    process.exit(1);
+}
 
 // ---------------------------------------------------------------------------
-// Subscribe to agent events
+// Subscribe to session events
 // ---------------------------------------------------------------------------
 
-agent.subscribe((event) => {
+session.subscribe((event) => {
     switch (event.type) {
         case 'message_update': {
             const ame = event.assistantMessageEvent;
@@ -305,7 +355,7 @@ agent.subscribe((event) => {
             emit({ type: 'turn_end' });
             break;
         case 'agent_end': {
-            const msgs = agent.state.messages;
+            const msgs = session.agent.state.messages;
             const lastAssistant = [...msgs].reverse().find(m => m.role === 'assistant');
             const stopReason = lastAssistant?.stopReason ?? 'stop';
             emit({ type: 'agent_end', stop_reason: stopReason });
@@ -337,7 +387,7 @@ for await (const line of lines) {
 
     switch (cmd.type) {
         case 'prompt':
-            agent.prompt(cmd.message).catch((e) => {
+            session.prompt(cmd.message).catch((e) => {
                 emit({ type: 'error', message: `Prompt error: ${e.message}` });
                 emit({ type: 'agent_end', stop_reason: 'error' });
             });
@@ -362,7 +412,7 @@ for await (const line of lines) {
         }
 
         case 'get_messages': {
-            const messages = agent.state.messages.map((m) => {
+            const messages = session.agent.state.messages.map((m) => {
                 if (m.role === 'assistant') {
                     return {
                         role: 'assistant',
@@ -398,14 +448,14 @@ for await (const line of lines) {
         }
 
         case 'get_state': {
-            const s = agent.state;
+            const s = session.agent.state;
             emit({
                 type: 'response',
                 command: 'get_state',
                 success: true,
                 data: {
                     message_count: s.messages?.length ?? 0,
-                    is_streaming: s.isStreaming,
+                    is_streaming: session.isStreaming,
                     model: s.model ? { provider: s.model.provider, id: s.model.id } : null,
                     thinking_level: s.thinkingLevel,
                 },
@@ -417,7 +467,7 @@ for await (const line of lines) {
             try {
                 const newProviderName = resolveProvider(cmd.provider.base_url);
                 const newModel = buildModel(newProviderName, cmd.model, cmd.provider.base_url);
-                agent.state.model = newModel;
+                await session.setModel(newModel);
             } catch (e) {
                 emit({ type: 'error', message: e.message });
             }
@@ -430,19 +480,22 @@ for await (const line of lines) {
                 emit({ type: 'error', message: `Invalid thinking level: "${level}"` });
                 break;
             }
-            agent.state.thinkingLevel = level === 'off' ? undefined : level;
+            session.setThinkingLevel(level === 'off' ? undefined : level);
             break;
         }
 
         case 'compact':
-            // pi-agent-core has no built-in compact; no-op for now
+            session.compact().catch((e) => {
+                emit({ type: 'error', message: `Compact error: ${e.message}` });
+            });
             break;
 
         case 'abort':
-            agent.abort();
+            session.abort().catch(() => {});
             break;
 
         case 'shutdown':
+            session.dispose();
             process.exit(0);
             break;
 
