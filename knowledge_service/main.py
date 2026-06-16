@@ -4,10 +4,12 @@ from typing import List, Optional, Union
 import json
 import threading
 import logging
+from pathlib import Path
 from queue import Queue
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from .models import (
     LLMConfig, LLMCreateRequest, LLMUpdateRequest,
@@ -24,6 +26,8 @@ from pi_bridge.types import TextDeltaEvent, AgentEndEvent, ErrorEvent
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
+
+_STATIC_DIR = Path(__file__).parent / "static"
 
 app = FastAPI(
     title="Pi Knowledge Service",
@@ -55,6 +59,23 @@ app = FastAPI(
         },
     ],
 )
+
+# Serve static files (CSS, JS if ever split out)
+if _STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
+
+
+# ===========================================================================
+# UI
+# ===========================================================================
+
+@app.get("/", include_in_schema=False)
+async def serve_ui():
+    """Serve the terminal UI."""
+    index = _STATIC_DIR / "index.html"
+    if not index.exists():
+        raise HTTPException(status_code=404, detail="UI not found")
+    return FileResponse(str(index))
 
 
 # ===========================================================================
