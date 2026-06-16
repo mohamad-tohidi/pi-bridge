@@ -1,5 +1,11 @@
 # pi-bridge
 
+MY TODO's:
+1- Add Hallucinate Detector.
+2- Add Skills. 
+
+
+---
 Python wrapper for the [Pi Agent SDK](https://github.com/earendil-works/pi). Pi is an autonomous coding agent that reads, edits, and runs code in a working directory using tools like `bash`, `read`, and `edit`. pi-bridge lets you drive it from Python via a local Node.js bridge process.
 
 ## Dependencies
