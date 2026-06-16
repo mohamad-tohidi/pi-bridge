@@ -1,6 +1,5 @@
 from typing import List
 import json
-
 import threading
 import logging
 from queue import Queue
@@ -9,12 +8,10 @@ from .models import ToolDefinition, AgentResponse, AgentCreateRequest, AskReques
 from .tools import get_tool_definitions
 from .agents import agent_manager
 
-
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from pi_bridge.types import TextDeltaEvent, AgentEndEvent, ErrorEvent, ToolResultEvent
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -23,15 +20,17 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Pi Knowledge Service")
 
+
 @app.get("/tools", response_model=List[ToolDefinition])
 async def get_tools():
     defs = get_tool_definitions()
     return [ToolDefinition(**d) for d in defs]
 
+
 @app.get("/agents", response_model=List[AgentResponse])
 async def list_agents():
-    agents = agent_manager.list_agents()
-    return agents
+    return agent_manager.list_agents()
+
 
 @app.get("/agents/{name}", response_model=AgentResponse)
 async def get_agent(name: str):
@@ -40,38 +39,31 @@ async def get_agent(name: str):
         raise HTTPException(status_code=404, detail="Agent not found")
     return agent
 
+
 @app.post("/agents", response_model=AgentResponse)
 async def create_agent(request: AgentCreateRequest):
     try:
-        agent = agent_manager.create_agent(request)
-        return agent
+        return agent_manager.create_agent(request)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/ask", response_model=AskResponse)
 async def ask(request: AskRequest):
     try:
-        session = agent_manager.get_session(request.agent_name)
+        session, sid = agent_manager.get_or_create_session(request.agent_name, request.session_id)
         events = session.send(request.query)
-        
+
         full_response = ""
-        tool_results_content = []
-        
         for event in events:
-            logger.info(f"Received event type: {type(event)}")
-            
             if isinstance(event, TextDeltaEvent):
                 full_response += event.delta
-            elif isinstance(event, ToolResultEvent):
-                tool_results_content.append(event.content)
             elif isinstance(event, ErrorEvent):
                 raise HTTPException(status_code=500, detail=f"Agent Error: {event.message}")
             elif isinstance(event, AgentEndEvent):
                 break
-        
 
-        
-        return AskResponse(response=full_response)
+        return AskResponse(response=full_response, session_id=sid)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except HTTPException:
@@ -79,11 +71,12 @@ async def ask(request: AskRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/ask/stream")
 async def ask_stream(request: AskRequest):
     async def event_generator():
         try:
-            session = agent_manager.get_session(request.agent_name)
+            session, sid = agent_manager.get_or_create_session(request.agent_name, request.session_id)
             event_queue = Queue()
 
             def worker():
@@ -97,7 +90,8 @@ async def ask_stream(request: AskRequest):
             thread = threading.Thread(target=worker)
             thread.start()
 
-            link_map = {}
+            # emit session_id first so client can grab it immediately
+            yield f"data: {json.dumps({'type': 'session_id', 'session_id': sid})}\n\n"
 
             while True:
                 event = event_queue.get()
@@ -106,22 +100,14 @@ async def ask_stream(request: AskRequest):
                 if isinstance(event, Exception):
                     yield f"data: {json.dumps({'type': 'error', 'message': str(event)})}\n\n"
                     break
-                
-                # if isinstance(event, ToolResultEvent):
-                #     new_map = extract_link_map([event.content])
-                #     link_map.update(new_map)
-                #     continue
-
                 if isinstance(event, TextDeltaEvent):
-                    # processed_delta = replace_tokens_with_links(event.delta, link_map)
                     yield f"data: {json.dumps({'type': 'text_delta', 'delta': event.delta})}\n\n"
-                
                 elif isinstance(event, AgentEndEvent):
-                    yield f"data: {json.dumps(event.__dict__)}\n\n"
+                    yield f"data: {json.dumps({'type': 'agent_end', 'stop_reason': event.stop_reason, 'session_id': sid})}\n\n"
                     break
                 else:
                     yield f"data: {json.dumps(event.__dict__)}\n\n"
-            
+
             thread.join()
 
         except ValueError as e:
@@ -130,6 +116,13 @@ async def ask_stream(request: AskRequest):
             yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+@app.delete("/sessions/{session_id}")
+async def close_session(session_id: str):
+    agent_manager.close_session(session_id)
+    return {"status": "closed"}
+
 
 @app.on_event("shutdown")
 def shutdown_event():
