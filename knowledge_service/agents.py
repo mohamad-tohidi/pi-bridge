@@ -8,7 +8,6 @@ from pi_bridge.types import Provider, Model, CustomTool
 from .models import AgentResponse, AgentCreateRequest
 from .tools import TOOLS, get_tool_definitions
 from .storage import storage
-from .transformers import LinkEnforcementTransformer
 
 API_KEY = os.environ.get("OPENAI_API_KEY", "")
 BASE_URL = os.environ.get("OPENAI_API_BASE", "")
@@ -82,8 +81,8 @@ class AgentManager:
                     ))
 
         transformers = []
-        if agent.behavior_config.get("return_links"):
-            transformers.append(LinkEnforcementTransformer())
+        # if agent.behavior_config.get("return_links"):
+        #     transformers.append(LinkEnforcementTransformer())
 
         session = PiSession(
             provider=DEFAULT_PROVIDER,

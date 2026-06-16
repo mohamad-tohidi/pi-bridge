@@ -9,7 +9,6 @@ from .models import ToolDefinition, AgentResponse, AgentCreateRequest, AskReques
 from .tools import get_tool_definitions
 from .agents import agent_manager
 
-from .utils import extract_link_map, replace_tokens_with_links
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
@@ -70,10 +69,9 @@ async def ask(request: AskRequest):
             elif isinstance(event, AgentEndEvent):
                 break
         
-        link_map = extract_link_map(tool_results_content)
-        final_response = replace_tokens_with_links(full_response, link_map)
+
         
-        return AskResponse(response=final_response)
+        return AskResponse(response=full_response)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except HTTPException:
@@ -109,14 +107,14 @@ async def ask_stream(request: AskRequest):
                     yield f"data: {json.dumps({'type': 'error', 'message': str(event)})}\n\n"
                     break
                 
-                if isinstance(event, ToolResultEvent):
-                    new_map = extract_link_map([event.content])
-                    link_map.update(new_map)
-                    continue
+                # if isinstance(event, ToolResultEvent):
+                #     new_map = extract_link_map([event.content])
+                #     link_map.update(new_map)
+                #     continue
 
                 if isinstance(event, TextDeltaEvent):
-                    processed_delta = replace_tokens_with_links(event.delta, link_map)
-                    yield f"data: {json.dumps({'type': 'text_delta', 'delta': processed_delta})}\n\n"
+                    # processed_delta = replace_tokens_with_links(event.delta, link_map)
+                    yield f"data: {json.dumps({'type': 'text_delta', 'delta': event.delta})}\n\n"
                 
                 elif isinstance(event, AgentEndEvent):
                     yield f"data: {json.dumps(event.__dict__)}\n\n"
