@@ -13,7 +13,7 @@ def _to_dict(agent: AgentResponse) -> dict:
     if hasattr(agent, "model_dump"):  # pydantic v2
         return agent.model_dump()
     if hasattr(agent, "dict"):  # pydantic v1
-        return agent.dict()
+        return agent.model_dump()
     return vars(agent)
 
 
