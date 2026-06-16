@@ -10,9 +10,7 @@ from .models import AgentResponse
 
 
 def _to_dict(agent: AgentResponse) -> dict:
-    if hasattr(agent, "model_dump"):  # pydantic v2
-        return agent.model_dump()
-    if hasattr(agent, "dict"):  # pydantic v1
+    if hasattr(agent, "model_dump"):
         return agent.model_dump()
     return vars(agent)
 
@@ -23,16 +21,19 @@ def _from_dict(data: dict) -> AgentResponse:
 
 class AgentBackend(ABC):
     @abstractmethod
-    def add(self, agent: AgentResponse) -> None:
-        ...
+    def add(self, agent: AgentResponse) -> None: ...
 
     @abstractmethod
-    def get(self, name: str) -> AgentResponse | None:
-        ...
+    def get(self, name: str) -> AgentResponse | None: ...
 
     @abstractmethod
-    def list_all(self) -> list[AgentResponse]:
-        ...
+    def list_all(self) -> list[AgentResponse]: ...
+
+    @abstractmethod
+    def update(self, name: str, agent: AgentResponse) -> AgentResponse | None: ...
+
+    @abstractmethod
+    def delete(self, name: str) -> bool: ...
 
 
 class SQLiteAgentBackend(AgentBackend):
@@ -78,22 +79,32 @@ class SQLiteAgentBackend(AgentBackend):
         conn = self._connect()
         try:
             row = conn.execute(
-                "SELECT payload FROM agents WHERE name = ?",
-                (name,),
+                "SELECT payload FROM agents WHERE name = ?", (name,)
             ).fetchone()
-            if not row:
-                return None
-            return _from_dict(json.loads(row[0]))
+            return _from_dict(json.loads(row[0])) if row else None
         finally:
             conn.close()
 
     def list_all(self) -> list[AgentResponse]:
         conn = self._connect()
         try:
-            rows = conn.execute(
-                "SELECT payload FROM agents"
-            ).fetchall()
+            rows = conn.execute("SELECT payload FROM agents").fetchall()
             return [_from_dict(json.loads(row[0])) for row in rows]
+        finally:
+            conn.close()
+
+    def update(self, name: str, agent: AgentResponse) -> AgentResponse | None:
+        if not self.get(name):
+            return None
+        self.add(agent)
+        return agent
+
+    def delete(self, name: str) -> bool:
+        conn = self._connect()
+        try:
+            cursor = conn.execute("DELETE FROM agents WHERE name = ?", (name,))
+            conn.commit()
+            return cursor.rowcount > 0
         finally:
             conn.close()
 
@@ -113,13 +124,16 @@ class JSONLAgentBackend(AgentBackend):
                 if not line:
                     continue
                 data = json.loads(line)
-                agent = _from_dict(data)
-                self._agents[agent.name] = agent
+                self._agents[_from_dict(data).name] = _from_dict(data)
+
+    def _flush(self) -> None:
+        with self.file_path.open("w", encoding="utf-8") as f:
+            for agent in self._agents.values():
+                f.write(json.dumps(_to_dict(agent), ensure_ascii=False) + "\n")
 
     def add(self, agent: AgentResponse) -> None:
         self._agents[agent.name] = agent
-        with self.file_path.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(_to_dict(agent), ensure_ascii=False) + "\n")
+        self._flush()
 
     def get(self, name: str) -> AgentResponse | None:
         return self._agents.get(name)
@@ -127,12 +141,26 @@ class JSONLAgentBackend(AgentBackend):
     def list_all(self) -> list[AgentResponse]:
         return list(self._agents.values())
 
+    def update(self, name: str, agent: AgentResponse) -> AgentResponse | None:
+        if name not in self._agents:
+            return None
+        self._agents[name] = agent
+        self._flush()
+        return agent
+
+    def delete(self, name: str) -> bool:
+        if name not in self._agents:
+            return False
+        del self._agents[name]
+        self._flush()
+        return True
+
 
 class AgentStorage:
     def __init__(self, backend: AgentBackend | None = None):
         self._backend = backend or SQLiteAgentBackend()
 
-    def add_agent(self, agent: AgentResponse):
+    def add_agent(self, agent: AgentResponse) -> None:
         self._backend.add(agent)
 
     def get_agent(self, name: str) -> AgentResponse | None:
@@ -141,8 +169,11 @@ class AgentStorage:
     def list_agents(self) -> list[AgentResponse]:
         return self._backend.list_all()
 
+    def update_agent(self, name: str, agent: AgentResponse) -> AgentResponse | None:
+        return self._backend.update(name, agent)
 
-# Same usage layer:
-storage = AgentStorage()  # SQLite by default
-# or:
-# storage = AgentStorage(JSONLAgentBackend("agents.jsonl"))
+    def delete_agent(self, name: str) -> bool:
+        return self._backend.delete(name)
+
+
+storage = AgentStorage()

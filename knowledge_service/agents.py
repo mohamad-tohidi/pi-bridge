@@ -6,7 +6,7 @@ from dotenv import load_dotenv; load_dotenv()
 
 from pi_bridge.session import PiSession
 from pi_bridge.types import Provider, Model, CustomTool
-from .models import AgentResponse, AgentCreateRequest
+from .models import AgentResponse, AgentCreateRequest, AgentUpdateRequest
 from .tools import TOOLS, get_tool_definitions
 from .storage import storage
 
@@ -20,7 +20,6 @@ DEFAULT_MODEL = Model(name=MODEL_NAME, api_format="completion")
 
 class AgentManager:
     def __init__(self):
-        # keyed by session_id, not agent name
         self._sessions: Dict[str, PiSession] = {}
 
     def create_agent(self, request: AgentCreateRequest) -> AgentResponse:
@@ -35,7 +34,7 @@ class AgentManager:
             name=request.name,
             system_prompt=system_prompt,
             tool_types=request.tool_types,
-            behavior_config=request.behavior_config
+            behavior_config=request.behavior_config,
         )
         storage.add_agent(agent)
         return agent
@@ -46,11 +45,31 @@ class AgentManager:
     def list_agents(self) -> list[AgentResponse]:
         return storage.list_agents()
 
+    def update_agent(self, name: str, request: AgentUpdateRequest) -> Optional[AgentResponse]:
+        agent = storage.get_agent(name)
+        if not agent:
+            return None
+        updated = AgentResponse(
+            name=name,
+            system_prompt=request.system_prompt if request.system_prompt is not None else agent.system_prompt,
+            tool_types=request.tool_types if request.tool_types is not None else agent.tool_types,
+            behavior_config=request.behavior_config if request.behavior_config is not None else agent.behavior_config,
+        )
+        storage.update_agent(name, updated)
+        # invalidate any live sessions for this agent
+        stale = [sid for sid, sess in self._sessions.items() if sid.startswith(f"{name}:")]
+        for sid in stale:
+            self._sessions[sid].close()
+            del self._sessions[sid]
+        return updated
+
+    def delete_agent(self, name: str) -> bool:
+        return storage.delete_agent(name)
+
     def _build_session(self, agent_name: str) -> PiSession:
-        """Create a fresh PiSession for a given agent."""
         agent = storage.get_agent(agent_name)
         if not agent:
-            raise ValueError(f"Agent {agent_name} not found")
+            raise ValueError(f"Agent '{agent_name}' not found")
 
         custom_tools = []
         for tool_type in agent.tool_types:
@@ -72,7 +91,7 @@ class AgentManager:
                         name=tool_type,
                         description=tool_def["description"],
                         parameters=tool_def["parameters"],
-                        fn=sync_wrapper
+                        fn=sync_wrapper,
                     ))
 
         return PiSession(
@@ -83,10 +102,6 @@ class AgentManager:
         )
 
     def get_or_create_session(self, agent_name: str, session_id: Optional[str]) -> Tuple[PiSession, str]:
-        """
-        - session_id=None  → one-shot: fresh session, not stored
-        - session_id given → reuse if exists, else create and store under that id
-        """
         if session_id and session_id in self._sessions:
             return self._sessions[session_id], session_id
 
@@ -94,7 +109,6 @@ class AgentManager:
         sid = session_id or str(uuid.uuid4())
 
         if session_id:
-            # caller explicitly provided an id → they want a persistent conversation
             self._sessions[sid] = session
 
         return session, sid
