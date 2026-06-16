@@ -8,24 +8,48 @@ from dotenv import load_dotenv; load_dotenv()
 
 from pi_bridge.session import PiSession
 from pi_bridge.types import Provider, Model, CustomTool
-from .models import AgentResponse, AgentCreateRequest, AgentUpdateRequest, SessionInfo
+from .models import AgentResponse, AgentCreateRequest, AgentUpdateRequest, SessionInfo, ToolStatus, LLMConfig
 from .tools import BUILTIN_TOOLS, make_sync, BUILTIN_TOOL_DEFINITIONS
 from .storage import storage
 from .tool_storage import dynamic_tool_storage, build_tool_callable
-from .models import ToolStatus
+from .llm_storage import llm_storage
 
-API_KEY  = os.environ.get("OPENAI_API_KEY", "")
-BASE_URL = os.environ.get("OPENAI_API_BASE", "")
-MODEL_NAME = os.environ.get("OPENAI_MODEL", "")
+# ---------------------------------------------------------------------------
+# Env fallback
+# ---------------------------------------------------------------------------
 
-DEFAULT_PROVIDER = Provider(base_url=BASE_URL, api_key=API_KEY)
-DEFAULT_MODEL    = Model(name=MODEL_NAME, api_format="completion")
+_ENV_LLM = LLMConfig(
+    name="__env__",
+    base_url=os.environ.get("OPENAI_API_BASE", ""),
+    api_key=os.environ.get("OPENAI_API_KEY", ""),
+    model_name=os.environ.get("OPENAI_MODEL", ""),
+    api_format=os.environ.get("OPENAI_API_FORMAT", "completion"),
+)
 
+
+def _resolve_llm(llm_name: Optional[str]) -> LLMConfig:
+    """Return the LLMConfig for llm_name, falling back to env if None or not found."""
+    if llm_name:
+        found = llm_storage.get(llm_name)
+        if found:
+            return found
+    return _ENV_LLM
+
+
+def _llm_to_provider_model(llm: LLMConfig) -> Tuple[Provider, Model]:
+    provider = Provider(base_url=llm.base_url, api_key=llm.api_key)
+    model    = Model(name=llm.model_name, api_format=llm.api_format)
+    return provider, model
+
+
+# ---------------------------------------------------------------------------
+# AgentManager
+# ---------------------------------------------------------------------------
 
 class AgentManager:
     def __init__(self):
-        # session_id -> (PiSession, agent_name)
-        self._sessions: Dict[str, Tuple[PiSession, str]] = {}
+        # session_id -> (PiSession, agent_name, llm_name)
+        self._sessions: Dict[str, Tuple[PiSession, str, Optional[str]]] = {}
 
     # ------------------------------------------------------------------
     # Agent CRUD
@@ -42,6 +66,7 @@ class AgentManager:
             name=request.name,
             system_prompt=system_prompt,
             tool_types=request.tool_types,
+            llm_name=request.llm_name or None,
             behavior_config=request.behavior_config,
         )
         storage.add_agent(agent)
@@ -57,11 +82,17 @@ class AgentManager:
         agent = storage.get_agent(name)
         if not agent:
             return None
+        # empty string means "revert to env default"
+        new_llm = (
+            None if request.llm_name == ""
+            else (request.llm_name if request.llm_name is not None else agent.llm_name)
+        )
         updated = AgentResponse(
             name=name,
-            system_prompt=request.system_prompt   if request.system_prompt   is not None else agent.system_prompt,
-            tool_types=request.tool_types          if request.tool_types      is not None else agent.tool_types,
-            behavior_config=request.behavior_config if request.behavior_config is not None else agent.behavior_config,
+            system_prompt=request.system_prompt     if request.system_prompt    is not None else agent.system_prompt,
+            tool_types=request.tool_types            if request.tool_types       is not None else agent.tool_types,
+            llm_name=new_llm,
+            behavior_config=request.behavior_config if request.behavior_config  is not None else agent.behavior_config,
         )
         storage.update_agent(name, updated)
         self._invalidate_sessions_for_agent(name)
@@ -77,19 +108,19 @@ class AgentManager:
 
     def list_sessions(self) -> list[SessionInfo]:
         return [
-            SessionInfo(session_id=sid, agent_name=agent_name)
-            for sid, (_, agent_name) in self._sessions.items()
+            SessionInfo(session_id=sid, agent_name=agent_name, llm_name=llm_name)
+            for sid, (_, agent_name, llm_name) in self._sessions.items()
         ]
 
     def get_or_create_session(self, agent_name: str, session_id: Optional[str]) -> Tuple[PiSession, str]:
         if session_id and session_id in self._sessions:
             return self._sessions[session_id][0], session_id
 
-        session = self._build_session(agent_name)
+        session, llm_name = self._build_session(agent_name)
         sid = session_id or str(uuid.uuid4())
 
         if session_id:
-            self._sessions[sid] = (session, agent_name)
+            self._sessions[sid] = (session, agent_name, llm_name)
 
         return session, sid
 
@@ -105,19 +136,25 @@ class AgentManager:
             self.close_session(sid)
 
     def _invalidate_sessions_for_agent(self, agent_name: str):
-        stale = [sid for sid, (_, name) in self._sessions.items() if name == agent_name]
+        stale = [sid for sid, (_, name, _llm) in self._sessions.items() if name == agent_name]
         for sid in stale:
             self._sessions[sid][0].close()
             del self._sessions[sid]
 
     def invalidate_sessions_for_tool(self, tool_name: str):
-        """Close all sessions whose agent uses the given tool."""
         stale = [
-            sid for sid, (_, agent_name) in self._sessions.items()
+            sid for sid, (_, agent_name, _llm) in self._sessions.items()
             if tool_name in (storage.get_agent(agent_name) or AgentResponse(
-                name="", system_prompt="", tool_types=[], behavior_config={}
+                name="", system_prompt="", tool_types=[], llm_name=None, behavior_config={}
             )).tool_types
         ]
+        for sid in stale:
+            self._sessions[sid][0].close()
+            del self._sessions[sid]
+
+    def invalidate_sessions_for_llm(self, llm_name: str):
+        """Close all sessions that were built with the given LLM."""
+        stale = [sid for sid, (_, _agent, lname) in self._sessions.items() if lname == llm_name]
         for sid in stale:
             self._sessions[sid][0].close()
             del self._sessions[sid]
@@ -126,15 +163,16 @@ class AgentManager:
     # Internal: build session
     # ------------------------------------------------------------------
 
-    def _build_session(self, agent_name: str) -> PiSession:
+    def _build_session(self, agent_name: str) -> Tuple[PiSession, Optional[str]]:
         agent = storage.get_agent(agent_name)
         if not agent:
             raise ValueError(f"Agent '{agent_name}' not found")
 
-        custom_tools: list[CustomTool] = []
+        llm = _resolve_llm(agent.llm_name)
+        provider, model = _llm_to_provider_model(llm)
 
+        custom_tools: list[CustomTool] = []
         for tool_type in agent.tool_types:
-            # 1. built-in tool?
             if tool_type in BUILTIN_TOOLS:
                 fn = make_sync(BUILTIN_TOOLS[tool_type])
                 tool_def = next((t for t in BUILTIN_TOOL_DEFINITIONS if t["name"] == tool_type), None)
@@ -147,7 +185,6 @@ class AgentManager:
                     ))
                 continue
 
-            # 2. dynamic tool?
             dyn = dynamic_tool_storage.get(tool_type)
             if dyn and dyn.status == ToolStatus.valid:
                 custom_tools.append(CustomTool(
@@ -157,12 +194,14 @@ class AgentManager:
                     fn=build_tool_callable(dyn),
                 ))
 
-        return PiSession(
-            provider=DEFAULT_PROVIDER,
-            model=DEFAULT_MODEL,
+        session = PiSession(
+            provider=provider,
+            model=model,
             system_prompt=agent.system_prompt,
             custom_tools=custom_tools,
         )
+        # return llm_name so session tracking knows which LLM was used
+        return session, (agent.llm_name if agent.llm_name else None)
 
 
 agent_manager = AgentManager()

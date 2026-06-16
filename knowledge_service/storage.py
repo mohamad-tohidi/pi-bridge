@@ -22,16 +22,12 @@ def _from_dict(data: dict) -> AgentResponse:
 class AgentBackend(ABC):
     @abstractmethod
     def add(self, agent: AgentResponse) -> None: ...
-
     @abstractmethod
     def get(self, name: str) -> AgentResponse | None: ...
-
     @abstractmethod
     def list_all(self) -> list[AgentResponse]: ...
-
     @abstractmethod
     def update(self, name: str, agent: AgentResponse) -> AgentResponse | None: ...
-
     @abstractmethod
     def delete(self, name: str) -> bool: ...
 
@@ -124,7 +120,8 @@ class JSONLAgentBackend(AgentBackend):
                 if not line:
                     continue
                 data = json.loads(line)
-                self._agents[_from_dict(data).name] = _from_dict(data)
+                agent = _from_dict(data)
+                self._agents[agent.name] = agent
 
     def _flush(self) -> None:
         with self.file_path.open("w", encoding="utf-8") as f:

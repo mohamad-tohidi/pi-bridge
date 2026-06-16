@@ -6,6 +6,33 @@ from typing import List, Dict, Any, Optional
 
 
 # ---------------------------------------------------------------------------
+# LLMs
+# ---------------------------------------------------------------------------
+
+class LLMConfig(BaseModel):
+    name:       str
+    base_url:   str
+    api_key:    str
+    model_name: str
+    api_format: str = "completion"  # completion | response | anthropic
+
+
+class LLMCreateRequest(BaseModel):
+    name:       str
+    base_url:   str
+    api_key:    str
+    model_name: str
+    api_format: str = "completion"
+
+
+class LLMUpdateRequest(BaseModel):
+    base_url:   Optional[str] = None
+    api_key:    Optional[str] = None
+    model_name: Optional[str] = None
+    api_format: Optional[str] = None
+
+
+# ---------------------------------------------------------------------------
 # Tools
 # ---------------------------------------------------------------------------
 
@@ -34,14 +61,14 @@ class ToolCreateRequest(BaseModel):
 
 
 class ToolUpdateRequest(BaseModel):
-    description: Optional[str]         = None
+    description: Optional[str]            = None
     parameters:  Optional[Dict[str, Any]] = None
-    code:        Optional[str]          = None
-    entry_point: Optional[str]          = None
+    code:        Optional[str]            = None
+    entry_point: Optional[str]            = None
 
 
 # ---------------------------------------------------------------------------
-# Built-in tool definition (returned by /tools for hardcoded tools)
+# Built-in tool definition
 # ---------------------------------------------------------------------------
 
 class ToolDefinition(BaseModel):
@@ -58,19 +85,22 @@ class AgentCreateRequest(BaseModel):
     name:            str
     system_prompt:   str
     tool_types:      List[str]
+    llm_name:        Optional[str] = None  # None = use env default
     behavior_config: Dict[str, Any] = Field(default_factory=dict)
 
 
 class AgentUpdateRequest(BaseModel):
-    system_prompt:   Optional[str]            = None
-    tool_types:      Optional[List[str]]       = None
-    behavior_config: Optional[Dict[str, Any]]  = None
+    system_prompt:   Optional[str]           = None
+    tool_types:      Optional[List[str]]      = None
+    llm_name:        Optional[str]            = None  # set to "" to revert to default
+    behavior_config: Optional[Dict[str, Any]] = None
 
 
 class AgentResponse(BaseModel):
     name:            str
     system_prompt:   str
     tool_types:      List[str]
+    llm_name:        Optional[str]  # None = using env default
     behavior_config: Dict[str, Any]
 
 
@@ -81,6 +111,7 @@ class AgentResponse(BaseModel):
 class SessionInfo(BaseModel):
     session_id: str
     agent_name: str
+    llm_name:   Optional[str]  # the LLM this session was built with
 
 
 # ---------------------------------------------------------------------------
