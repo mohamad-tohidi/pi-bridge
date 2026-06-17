@@ -37,14 +37,11 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.65; overflow: hidden; }
 
-/* ── scrollbars ── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
 
-/* ══════════════════════════════════════
-   SIDEBAR
-══════════════════════════════════════ */
+/* ── SIDEBAR ── */
 #sidebar {
   position: fixed;
   top: 0; left: 0; bottom: 0;
@@ -58,7 +55,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   z-index: 100;
 }
 #sidebar.open { transform: translateX(0); }
-
 #sidebar-top {
   padding: 20px 18px 14px;
   border-bottom: 1px solid var(--border);
@@ -71,8 +67,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   color: var(--muted);
   margin-bottom: 14px;
 }
-
-/* agent selector */
 .sb-label { font-size: 11px; color: var(--muted); margin-bottom: 5px; }
 #agent-select {
   width: 100%;
@@ -91,7 +85,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   background-position: right 10px center;
 }
 #agent-select:focus { border-color: var(--green); }
-
 #session-display {
   margin-top: 10px;
   font-size: 11px;
@@ -101,15 +94,8 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-#llm-display {
-  margin-top: 4px;
-  font-size: 11px;
-  color: var(--muted);
-}
+#llm-display { margin-top: 4px; font-size: 11px; color: var(--muted); }
 #llm-display span { color: var(--blue); }
-
-/* sidebar nav */
 #sidebar-nav {
   padding: 12px 10px;
   border-bottom: 1px solid var(--border);
@@ -136,7 +122,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 .sb-nav-btn:hover, .sb-nav-btn.active { background: var(--surface2); color: var(--bright); }
 .sb-nav-btn svg { flex-shrink: 0; opacity: 0.7; }
-
 #sidebar-bottom {
   padding: 12px 10px;
   margin-top: auto;
@@ -161,32 +146,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   transition: color 0.12s, border-color 0.12s;
 }
 .sb-action-btn:hover { color: var(--bright); border-color: var(--subtle); }
-
-/* sidebar toggle button (always visible) */
-#sb-toggle {
-  position: fixed;
-  top: 14px;
-  left: 14px;
-  z-index: 101;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--subtle);
-  width: 32px; height: 32px;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  border-radius: var(--radius);
-  transition: color 0.12s, border-color 0.12s, left 0.22s cubic-bezier(.4,0,.2,1);
-}
-#sb-toggle:hover { color: var(--bright); border-color: var(--subtle); }
-#sb-toggle.shifted { left: calc(var(--sidebar-w) + 14px); }
-
-/* sidebar shortcut hint */
-#sb-toggle::after {
-  content: '';
-  pointer-events: none;
-}
-
-/* overlay */
 #sb-overlay {
   display: none;
   position: fixed;
@@ -197,80 +156,20 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 #sb-overlay.show { display: block; }
 
-/* ══════════════════════════════════════
-   AGENT BAR  (top of chat, inline)
-══════════════════════════════════════ */
-#agent-bar {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  z-index: 10;
-  display: flex;
-  justify-content: center;
-  padding: 10px 20px 0;
-  pointer-events: none;
-}
-#agent-bar-inner {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 4px 8px 4px 12px;
-  pointer-events: all;
-  transition: border-color 0.15s;
-}
-#agent-bar-inner:focus-within { border-color: var(--subtle); }
-#agent-bar-label {
-  font-size: 11px;
-  color: var(--muted);
-  white-space: nowrap;
-}
-#agent-bar-select {
-  background: transparent;
-  border: none;
-  color: var(--bright);
-  font-family: var(--font);
-  font-size: 13px;
-  outline: none;
-  cursor: pointer;
-  padding: 2px 20px 2px 4px;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23706e62'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 2px center;
-  min-width: 100px;
-}
-#agent-bar-select option { background: var(--surface2); }
-#agent-bar-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--dim);
-  flex-shrink: 0;
-  transition: background 0.3s;
-}
-#agent-bar-dot.active { background: var(--green); }
-
-/* ══════════════════════════════════════
-   PAGES
-══════════════════════════════════════ */
+/* ── PAGES ── */
 .page { display: none; height: 100vh; flex-direction: column; overflow: hidden; }
 .page.active { display: flex; }
 
-/* ══════════════════════════════════════
-   CHAT PAGE
-══════════════════════════════════════ */
+/* ── CHAT PAGE ── */
 #page-chat { position: relative; }
-
 #messages {
   flex: 1;
   overflow-y: auto;
-  padding: 52px 20px 20px;
+  padding: 20px 20px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
-/* lock scroll during stream */
 #messages.scroll-locked { overflow-y: hidden; }
 
 .msg-wrap {
@@ -279,8 +178,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   margin-bottom: 28px;
   animation: msgIn 0.18s ease;
 }
-
-/* user message */
 .msg-wrap.user .msg-content {
   color: var(--text);
   font-size: 14px;
@@ -292,23 +189,14 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
-
-/* assistant message */
 .msg-wrap.assistant .msg-content {
   color: var(--bright);
   font-size: 14.5px;
   line-height: 1.75;
 }
 
-/* ── process trace (thinking + tool calls) ── */
-.process-trace {
-  margin-bottom: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-/* thinking row */
+/* ── process trace ── */
+.process-trace { margin-bottom: 10px; display: flex; flex-direction: column; gap: 4px; }
 .trace-thinking {
   display: inline-flex;
   align-items: center;
@@ -325,12 +213,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   width: fit-content;
 }
 .trace-thinking:hover { border-color: var(--subtle); color: var(--text); }
-.thinking-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--yellow);
-  flex-shrink: 0;
-}
+.thinking-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--yellow); flex-shrink: 0; }
 .thinking-dot.pulse { animation: pulse 1.2s ease infinite; }
 .thinking-dot.done  { background: var(--muted); animation: none; }
 .trace-thinking-content {
@@ -349,13 +232,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   animation: fadeIn 0.15s ease;
 }
 .trace-thinking-content.open { display: block; }
-
-/* tool call row */
-.trace-tool {
-  display: flex;
-  flex-direction: column;
-  animation: fadeSlideIn 0.18s ease;
-}
+.trace-tool { display: flex; flex-direction: column; animation: fadeSlideIn 0.18s ease; }
 .trace-tool-header {
   display: inline-flex;
   align-items: center;
@@ -372,13 +249,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   transition: border-color 0.12s;
 }
 .trace-tool-header:hover { border-color: var(--subtle); color: var(--text); }
-.tool-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--yellow);
-  flex-shrink: 0;
-  transition: background 0.3s;
-}
+.tool-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--yellow); flex-shrink: 0; transition: background 0.3s; }
 .tool-dot.done  { background: var(--green); }
 .tool-dot.error { background: var(--red); }
 .tool-dot.spin  { animation: spin 0.8s linear infinite; background: conic-gradient(var(--yellow) 0deg, transparent 270deg); }
@@ -386,97 +257,31 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .tool-status-label { color: var(--green); font-size: 11px; opacity: 0; transition: opacity 0.3s; }
 .tool-status-label.show { opacity: 1; }
 .tool-status-label.err  { color: var(--red); }
-
-.trace-tool-body {
-  display: none;
-  margin-top: 4px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  animation: fadeIn 0.15s ease;
-}
+.trace-tool-body { display: none; margin-top: 4px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; animation: fadeIn 0.15s ease; }
 .trace-tool-body.open { display: block; }
-.trace-tool-section {
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border);
-}
+.trace-tool-section { padding: 8px 12px; border-bottom: 1px solid var(--border); }
 .trace-tool-section:last-child { border-bottom: none; }
-.trace-section-label {
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 5px;
-}
-.trace-code {
-  font-family: var(--mono);
-  font-size: 11.5px;
-  color: var(--text);
-  white-space: pre-wrap;
-  word-break: break-all;
-  max-height: 140px;
-  overflow-y: auto;
-  background: var(--bg);
-  padding: 6px 8px;
-  border-radius: 4px;
-}
+.trace-section-label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+.trace-code { font-family: var(--mono); font-size: 11.5px; color: var(--text); white-space: pre-wrap; word-break: break-all; max-height: 140px; overflow-y: auto; background: var(--bg); padding: 6px 8px; border-radius: 4px; }
 
 /* ── markdown ── */
 .msg-content p { margin-bottom: 10px; }
 .msg-content p:last-child { margin-bottom: 0; }
-.msg-content h1,.msg-content h2,.msg-content h3 {
-  color: var(--bright);
-  font-size: 15px;
-  font-weight: 600;
-  margin: 14px 0 6px;
-}
-.msg-content code {
-  background: var(--surface2);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: var(--mono);
-  font-size: 12.5px;
-  color: var(--yellow);
-}
-.msg-content pre {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 12px 14px;
-  overflow-x: auto;
-  margin: 8px 0;
-}
+.msg-content h1,.msg-content h2,.msg-content h3 { color: var(--bright); font-size: 15px; font-weight: 600; margin: 14px 0 6px; }
+.msg-content code { background: var(--surface2); padding: 2px 6px; border-radius: 4px; font-family: var(--mono); font-size: 12.5px; color: var(--yellow); }
+.msg-content pre { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; overflow-x: auto; margin: 8px 0; }
 .msg-content pre code { background: none; padding: 0; color: var(--text); font-size: 12.5px; }
 .msg-content ul, .msg-content ol { padding-left: 20px; margin-bottom: 10px; }
 .msg-content li { margin-bottom: 3px; }
-.msg-content blockquote {
-  border-left: 3px solid var(--dim);
-  padding-left: 14px;
-  color: var(--subtle);
-  margin: 8px 0;
-}
+.msg-content blockquote { border-left: 3px solid var(--dim); padding-left: 14px; color: var(--subtle); margin: 8px 0; }
 .msg-content a { color: var(--blue); text-decoration: none; }
 .msg-content a:hover { text-decoration: underline; }
 .msg-content table { border-collapse: collapse; margin: 8px 0; width: 100%; }
-.msg-content th, .msg-content td {
-  border: 1px solid var(--border);
-  padding: 6px 12px;
-  font-size: 13px;
-  text-align: start;
-}
+.msg-content th, .msg-content td { border: 1px solid var(--border); padding: 6px 12px; font-size: 13px; text-align: start; }
 .msg-content th { color: var(--bright); background: var(--surface); }
+.stream-cursor { display: inline-block; width: 2px; height: 1em; background: var(--subtle); margin-left: 1px; vertical-align: text-bottom; animation: blink 0.9s step-end infinite; }
 
-/* streaming cursor */
-.stream-cursor {
-  display: inline-block;
-  width: 2px; height: 1em;
-  background: var(--subtle);
-  margin-left: 1px;
-  vertical-align: text-bottom;
-  animation: blink 0.9s step-end infinite;
-}
-
-/* ── input area ── */
+/* ── INPUT AREA ── */
 #input-wrap {
   flex-shrink: 0;
   display: flex;
@@ -490,39 +295,40 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   border: 1px solid var(--border);
   border-radius: var(--radius);
   display: flex;
-  align-items: flex-end;
-  gap: 0;
+  flex-direction: column;
   transition: border-color 0.15s;
 }
 #input-box:focus-within { border-color: var(--subtle); }
 
-/* center the input when chat is empty */
-#page-chat.empty #input-wrap {
-  position: absolute;
-  left: 0; right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  padding: 0 20px;
-  transition: top 0.4s cubic-bezier(.4,0,.2,1), transform 0.4s cubic-bezier(.4,0,.2,1), padding 0.4s;
+/* agent select — ghost, bottom-left of input box */
+#input-agent-row {
+  display: flex;
+  align-items: center;
+  padding: 0 10px 6px 12px;
+  opacity: 0.35;
+  transition: opacity 0.2s;
 }
-#page-chat.empty #messages { visibility: hidden; }
+#input-agent-row:hover,
+#input-box:focus-within #input-agent-row { opacity: 0.7; }
+#input-agent-select {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--muted);
+  font-family: var(--font);
+  font-size: 11px;
+  cursor: pointer;
+  appearance: none;
+  padding: 0;
+  letter-spacing: 0.03em;
+}
+#input-agent-select option { background: var(--surface2); color: var(--text); }
 
-/* animate input to bottom when first message sent */
-#page-chat.transitioning #input-wrap {
-  position: absolute;
-  left: 0; right: 0;
-  bottom: 0;
-  top: auto;
-  transform: none;
-  padding: 0 20px 24px;
-  transition: none;
-  animation: inputSlideDown 0.38s cubic-bezier(.4,0,.2,1) forwards;
+/* main text row */
+#input-main-row {
+  display: flex;
+  align-items: flex-end;
 }
-@keyframes inputSlideDown {
-  from { bottom: 40%; opacity: 0.7; transform: translateY(20px); }
-  to   { bottom: 0;   opacity: 1;   transform: translateY(0); }
-}
-
 #user-input {
   flex: 1;
   background: transparent;
@@ -531,7 +337,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   color: var(--bright);
   font-family: var(--font);
   font-size: 14px;
-  padding: 12px 14px;
+  padding: 12px 14px 8px;
   resize: none;
   overflow-y: hidden;
   min-height: 46px;
@@ -542,7 +348,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 #send-btn {
   flex-shrink: 0;
   align-self: flex-end;
-  margin: 8px 8px 8px 0;
+  margin: 0 8px 8px 0;
   background: none;
   border: 1px solid var(--border);
   color: var(--muted);
@@ -557,105 +363,65 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 #send-btn:hover:not(:disabled) { color: var(--bright); border-color: var(--subtle); background: var(--surface2); }
 #send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-/* ══════════════════════════════════════
-   CONFIG PAGE
-══════════════════════════════════════ */
-#page-config {
-  overflow-y: auto;
-  padding: 48px 20px 40px;
-  align-items: center;
+/* center input when empty */
+#page-chat.empty #input-wrap {
+  position: absolute;
+  left: 0; right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0 20px;
 }
+#page-chat.empty #messages { visibility: hidden; }
+
+/* animate to bottom on first send */
+#page-chat.transitioning #input-wrap {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 0; top: auto;
+  transform: none;
+  padding: 0 20px 24px;
+  animation: inputSlideDown 0.38s cubic-bezier(.4,0,.2,1) forwards;
+}
+@keyframes inputSlideDown {
+  from { bottom: 40%; opacity: 0.7; transform: translateY(20px); }
+  to   { bottom: 0;   opacity: 1;   transform: translateY(0); }
+}
+
+/* ── CONFIG PAGE ── */
+#page-config { overflow-y: auto; padding: 48px 20px 40px; align-items: center; }
 .config-inner { width: 100%; max-width: 720px; }
-
 .config-section { margin-bottom: 36px; }
-.config-section-title {
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
-}
-
+.config-section-title { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
 .data-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
-.data-table th {
-  text-align: start;
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--border);
-}
-.data-table td {
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--dim);
-  font-size: 13px;
-  color: var(--text);
-  vertical-align: top;
-}
+.data-table th { text-align: start; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding: 6px 10px; border-bottom: 1px solid var(--border); }
+.data-table td { padding: 8px 10px; border-bottom: 1px solid var(--dim); font-size: 13px; color: var(--text); vertical-align: top; }
 .data-table tr:last-child td { border-bottom: none; }
 .data-table tr:hover td { background: var(--surface2); }
-.badge {
-  font-size: 10px;
-  padding: 2px 7px;
-  border-radius: 3px;
-  font-family: var(--mono);
-}
+.badge { font-size: 10px; padding: 2px 7px; border-radius: 3px; font-family: var(--mono); }
 .badge.valid   { color: var(--green); background: var(--green-dim); }
 .badge.invalid { color: var(--red);   background: rgba(248,81,73,0.12); }
 .badge.pending { color: var(--yellow);background: rgba(210,153,34,0.12); }
-
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
 .form-full { grid-column: 1 / -1; }
 .field { display: flex; flex-direction: column; gap: 5px; }
 .field label { font-size: 11px; color: var(--muted); letter-spacing: 0.05em; }
-.field input, .field select, .field textarea {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  color: var(--bright);
-  font-family: var(--font);
-  font-size: 13px;
-  padding: 7px 10px;
-  outline: none;
-  border-radius: var(--radius);
-  transition: border-color 0.15s;
-}
+.field input, .field select, .field textarea { background: var(--surface2); border: 1px solid var(--border); color: var(--bright); font-family: var(--font); font-size: 13px; padding: 7px 10px; outline: none; border-radius: var(--radius); transition: border-color 0.15s; }
 .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--subtle); }
 .field textarea { resize: vertical; min-height: 70px; }
 .field select { appearance: none; cursor: pointer; }
-
-.CodeMirror {
-  border: 1px solid var(--border) !important;
-  border-radius: var(--radius) !important;
-  font-family: var(--mono) !important;
-  font-size: 12.5px !important;
-  height: 200px;
-}
+.CodeMirror { border: 1px solid var(--border) !important; border-radius: var(--radius) !important; font-family: var(--mono) !important; font-size: 12.5px !important; height: 200px; }
 .CodeMirror-focused { border-color: var(--subtle) !important; }
-
 .btn-row { display: flex; gap: 8px; align-items: center; }
-.btn {
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--text);
-  font-family: var(--font);
-  font-size: 12px;
-  padding: 6px 16px;
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: color 0.12s, border-color 0.12s, background 0.12s;
-}
+.btn { background: none; border: 1px solid var(--border); color: var(--text); font-family: var(--font); font-size: 12px; padding: 6px 16px; border-radius: var(--radius); cursor: pointer; transition: color 0.12s, border-color 0.12s, background 0.12s; }
 .btn:hover { color: var(--bright); border-color: var(--subtle); background: var(--surface2); }
 .btn.primary { border-color: var(--subtle); color: var(--bright); }
 .btn.primary:hover { border-color: var(--green); color: var(--green); }
-.btn.danger:hover  { border-color: var(--red);   color: var(--red); }
+.btn.danger:hover  { border-color: var(--red); color: var(--red); }
 .status-msg { font-size: 12px; padding: 5px 0; min-height: 22px; }
 .status-msg.ok  { color: var(--green); }
 .status-msg.err { color: var(--red); }
 
-/* ── RTL support ── */
+/* ── RTL ── */
 [dir="rtl"] #agent-select { background-position: left 10px center; padding-left: 30px; padding-right: 10px; }
 [dir="rtl"] .msg-wrap.user .msg-content { text-align: right; }
 [dir="rtl"] .msg-wrap.assistant .msg-content { text-align: right; }
@@ -663,7 +429,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 [dir="rtl"] .msg-content ul, [dir="rtl"] .msg-content ol { padding-left: 0; padding-right: 20px; }
 
 /* ── animations ── */
-@keyframes fadeIn      { from { opacity: 0; }                              to { opacity: 1; } }
+@keyframes fadeIn      { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
 @keyframes msgIn       { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes blink       { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
@@ -672,15 +438,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 </style>
 </head>
 <body>
-
-<!-- ══ SIDEBAR TOGGLE ══ -->
-<button id="sb-toggle" title="menu (Ctrl+\\)" onclick="toggleSidebar()">
-  <svg width="15" height="12" viewBox="0 0 15 12" fill="none">
-    <rect x="0" y="0"  width="15" height="1.5" rx="0.75" fill="currentColor"/>
-    <rect x="0" y="5"  width="15" height="1.5" rx="0.75" fill="currentColor"/>
-    <rect x="0" y="10" width="15" height="1.5" rx="0.75" fill="currentColor"/>
-  </svg>
-</button>
 
 <!-- ══ SIDEBAR ══ -->
 <div id="sidebar">
@@ -691,7 +448,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     <div id="session-display">no session</div>
     <div id="llm-display">llm: <span id="llm-name-display">env default</span></div>
   </div>
-
   <div id="sidebar-nav">
     <button class="sb-nav-btn active" data-page="chat" onclick="navTo('chat',this)">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H5l-3 3V3z" stroke="currentColor" stroke-width="1.4"/></svg>
@@ -702,7 +458,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
       config
     </button>
   </div>
-
   <div id="sidebar-bottom">
     <button class="sb-action-btn" onclick="newSession()">
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
@@ -714,27 +469,20 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     </button>
   </div>
 </div>
-
 <div id="sb-overlay" onclick="closeSidebar()"></div>
 
 <!-- ══ CHAT PAGE ══ -->
 <div id="page-chat" class="page active empty">
-
-  <!-- ══ AGENT BAR ══ -->
-  <div id="agent-bar">
-    <div id="agent-bar-inner">
-      <span id="agent-bar-label">agent</span>
-      <select id="agent-bar-select"><option value="">— select —</option></select>
-      <div id="agent-bar-dot"></div>
-    </div>
-  </div>
-
   <div id="messages"></div>
-
   <div id="input-wrap">
     <div id="input-box">
-      <textarea id="user-input" rows="1" placeholder="message the agent…"></textarea>
-      <button id="send-btn">send</button>
+      <div id="input-main-row">
+        <textarea id="user-input" rows="1" placeholder="message the agent…"></textarea>
+        <button id="send-btn">send</button>
+      </div>
+      <div id="input-agent-row">
+        <select id="input-agent-select"><option value="">— agent —</option></select>
+      </div>
     </div>
   </div>
 </div>
@@ -742,8 +490,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 <!-- ══ CONFIG PAGE ══ -->
 <div id="page-config" class="page">
   <div class="config-inner">
-
-    <!-- LLMs -->
     <div class="config-section">
       <div class="config-section-title">llm configurations</div>
       <table class="data-table" id="llm-table">
@@ -763,13 +509,9 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
           </select>
         </div>
       </div>
-      <div class="btn-row">
-        <button class="btn primary" onclick="saveLLM()">add llm</button>
-      </div>
+      <div class="btn-row"><button class="btn primary" onclick="saveLLM()">add llm</button></div>
       <div class="status-msg" id="llm-status"></div>
     </div>
-
-    <!-- Agents -->
     <div class="config-section">
       <div class="config-section-title">agents</div>
       <table class="data-table" id="agent-table">
@@ -782,13 +524,9 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
         <div class="field form-full"><label>system prompt</label><textarea id="ag-prompt" rows="3"></textarea></div>
         <div class="field form-full"><label>tool types (comma separated)</label><input id="ag-tools" placeholder="parsa, my_tool"></div>
       </div>
-      <div class="btn-row">
-        <button class="btn primary" onclick="saveAgent()">add agent</button>
-      </div>
+      <div class="btn-row"><button class="btn primary" onclick="saveAgent()">add agent</button></div>
       <div class="status-msg" id="agent-status"></div>
     </div>
-
-    <!-- Tools -->
     <div class="config-section">
       <div class="config-section-title">dynamic tools</div>
       <table class="data-table" id="tool-table">
@@ -799,28 +537,16 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
         <div class="field"><label>name</label><input id="t-name" placeholder="fetch_data"></div>
         <div class="field"><label>entry point</label><input id="t-entry" value="run" placeholder="run"></div>
         <div class="field form-full"><label>description</label><input id="t-desc" placeholder="What this tool does"></div>
-        <div class="field form-full">
-          <label>parameters (JSON schema)</label>
-          <textarea id="t-params" rows="3" placeholder='{"type":"object","properties":{"query":{"type":"string"}},"required":["query"]}'></textarea>
-        </div>
-        <div class="field form-full">
-          <label>code (python)</label>
-          <textarea id="t-code-raw"></textarea>
-        </div>
+        <div class="field form-full"><label>parameters (JSON schema)</label><textarea id="t-params" rows="3" placeholder='{"type":"object","properties":{"query":{"type":"string"}},"required":["query"]}'></textarea></div>
+        <div class="field form-full"><label>code (python)</label><textarea id="t-code-raw"></textarea></div>
       </div>
-      <div class="btn-row">
-        <button class="btn primary" onclick="saveTool()">register tool</button>
-      </div>
+      <div class="btn-row"><button class="btn primary" onclick="saveTool()">register tool</button></div>
       <div class="status-msg" id="tool-status"></div>
     </div>
-
   </div>
 </div>
 
 <script>
-// ═══════════════════════════════════
-// STATE
-// ═══════════════════════════════════
 let currentAgent = null;
 let currentSessionId = null;
 let isStreaming = false;
@@ -828,31 +554,22 @@ let codeEditor = null;
 let rtlEnabled = false;
 let hasMessages = false;
 
-// ═══════════════════════════════════
-// SIDEBAR
-// ═══════════════════════════════════
 function toggleSidebar() {
   const sb = document.getElementById('sidebar');
   const ov = document.getElementById('sb-overlay');
-  const tog = document.getElementById('sb-toggle');
   const open = sb.classList.toggle('open');
   ov.classList.toggle('show', open);
-  tog.classList.toggle('shifted', open);
 }
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sb-overlay').classList.remove('show');
-  document.getElementById('sb-toggle').classList.remove('shifted');
 }
 
-// Ctrl+\ shortcut to toggle sidebar
+// Ctrl+\ = toggle sidebar
 document.addEventListener('keydown', function(e) {
   if (e.ctrlKey && e.key === '\\') { e.preventDefault(); toggleSidebar(); }
 });
 
-// ═══════════════════════════════════
-// NAV
-// ═══════════════════════════════════
 function navTo(page, btn) {
   document.querySelectorAll('.sb-nav-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -862,18 +579,12 @@ function navTo(page, btn) {
   closeSidebar();
 }
 
-// ═══════════════════════════════════
-// RTL
-// ═══════════════════════════════════
 function toggleRTL() {
   rtlEnabled = !rtlEnabled;
   document.documentElement.dir = rtlEnabled ? 'rtl' : 'ltr';
   document.getElementById('rtl-label').textContent = rtlEnabled ? 'disable RTL' : 'enable RTL';
 }
 
-// ═══════════════════════════════════
-// API
-// ═══════════════════════════════════
 const api = {
   get:    u    => fetch(u).then(r => r.json()),
   post:   (u,b)=> fetch(u,{method:'POST',  headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(r=>r.json()),
@@ -881,26 +592,19 @@ const api = {
   delete: u    => fetch(u,{method:'DELETE'}).then(r=>r.json()),
 };
 
-// ═══════════════════════════════════
-// INIT
-// ═══════════════════════════════════
 async function init() {
   await loadAgentSelect();
   initCodeEditor();
-  // start in empty/centered state
-  document.getElementById('page-chat').classList.add('empty');
 }
 
 async function loadAgentSelect() {
   try {
     const data = await api.get('/agents');
     const list = Array.isArray(data) ? data : (data && data.name ? [data] : []);
-
-    // populate both selects
-    ['agent-select', 'agent-bar-select'].forEach(id => {
+    ['agent-select', 'input-agent-select'].forEach(id => {
       const sel = document.getElementById(id);
       const prev = sel.value;
-      sel.innerHTML = '<option value="">— select —</option>';
+      sel.innerHTML = '<option value="">— agent —</option>';
       list.forEach(a => {
         const o = document.createElement('option');
         o.value = a.name; o.textContent = a.name;
@@ -912,19 +616,16 @@ async function loadAgentSelect() {
   } catch {}
 }
 
-// keep both selects in sync
 function onAgentChange(val) {
   currentAgent = val || null;
   currentSessionId = null;
   document.getElementById('session-display').textContent = 'no session';
   document.getElementById('agent-select').value = val;
-  document.getElementById('agent-bar-select').value = val;
-  const dot = document.getElementById('agent-bar-dot');
-  dot.classList.toggle('active', !!val);
+  document.getElementById('input-agent-select').value = val;
   updateLLMDisplay();
 }
 document.getElementById('agent-select').addEventListener('change', function() { onAgentChange(this.value); });
-document.getElementById('agent-bar-select').addEventListener('change', function() { onAgentChange(this.value); });
+document.getElementById('input-agent-select').addEventListener('change', function() { onAgentChange(this.value); });
 
 async function updateLLMDisplay() {
   if (!currentAgent) { document.getElementById('llm-name-display').textContent = 'env default'; return; }
@@ -944,9 +645,22 @@ function newSession() {
   closeSidebar();
 }
 
-// ═══════════════════════════════════
-// TEXTAREA AUTO-EXPAND
-// ═══════════════════════════════════
+// vim-like scroll (j/k/G/gg when not in input)
+document.addEventListener('keydown', function(e) {
+  if (isStreaming) return;
+  const tag = document.activeElement.tagName;
+  if (tag === 'TEXTAREA' || tag === 'INPUT' || tag === 'SELECT') return;
+  const msgs = document.getElementById('messages');
+  if (e.key === 'j') { msgs.scrollBy({ top: 80,  behavior: 'smooth' }); }
+  if (e.key === 'k') { msgs.scrollBy({ top: -80, behavior: 'smooth' }); }
+  if (e.key === 'G') { msgs.scrollTo({ top: msgs.scrollHeight, behavior: 'smooth' }); }
+  if (e.key === 'g' && !e.shiftKey) {
+    if (window._lastKey === 'g') { msgs.scrollTo({ top: 0, behavior: 'smooth' }); window._lastKey = null; return; }
+    window._lastKey = 'g';
+    setTimeout(() => { window._lastKey = null; }, 500);
+  }
+});
+
 const userInput = document.getElementById('user-input');
 userInput.addEventListener('input', function() {
   this.style.height = 'auto';
@@ -957,43 +671,18 @@ userInput.addEventListener('keydown', function(e) {
 });
 document.getElementById('send-btn').addEventListener('click', sendMessage);
 
-// ═══════════════════════════════════
-// VIM-LIKE SCROLL  (j/k when input not focused)
-// ═══════════════════════════════════
-document.addEventListener('keydown', function(e) {
-  if (isStreaming) return;
-  const tag = document.activeElement.tagName;
-  if (tag === 'TEXTAREA' || tag === 'INPUT' || tag === 'SELECT') return;
-  const msgs = document.getElementById('messages');
-  if (e.key === 'j') { msgs.scrollBy({ top: 80,  behavior: 'smooth' }); }
-  if (e.key === 'k') { msgs.scrollBy({ top: -80, behavior: 'smooth' }); }
-  if (e.key === 'G') { msgs.scrollTo({ top: msgs.scrollHeight, behavior: 'smooth' }); }
-  if (e.key === 'g' && e.shiftKey === false) {
-    // gg: need two g presses — handled with a tiny timer
-    if (window._lastKey === 'g') { msgs.scrollTo({ top: 0, behavior: 'smooth' }); window._lastKey = null; return; }
-    window._lastKey = 'g';
-    setTimeout(() => { window._lastKey = null; }, 500);
-  }
-});
-
-// ═══════════════════════════════════
-// SEND
-// ═══════════════════════════════════
 async function sendMessage() {
   if (isStreaming) return;
   const text = userInput.value.trim();
   if (!text) return;
-  if (!currentAgent) { alert('select an agent first'); return; }
+  if (!currentAgent) { alert('select an agent first (bottom of input box)'); return; }
 
-  // animate input from center to bottom on first message
   const chatPage = document.getElementById('page-chat');
   if (!hasMessages) {
     hasMessages = true;
     chatPage.classList.add('transitioning');
     chatPage.classList.remove('empty');
-    setTimeout(() => {
-      chatPage.classList.remove('transitioning');
-    }, 400);
+    setTimeout(() => chatPage.classList.remove('transitioning'), 400);
   }
 
   userInput.value = '';
@@ -1001,57 +690,42 @@ async function sendMessage() {
   document.getElementById('send-btn').disabled = true;
   isStreaming = true;
 
-  // lock scroll during stream
   const msgs = document.getElementById('messages');
   msgs.classList.add('scroll-locked');
 
   appendUserMessage(text);
   const { traceEl, contentEl } = appendAssistantMessage();
 
-  let thinkingText = '';
-  let responseText = '';
-  let cursorEl = null;
-
-  cursorEl = document.createElement('span');
+  let thinkingText = '', responseText = '';
+  const cursorEl = document.createElement('span');
   cursorEl.className = 'stream-cursor';
   contentEl.appendChild(cursorEl);
 
   try {
     const body = { agent_name: currentAgent, query: text };
     if (currentSessionId) body.session_id = currentSessionId;
-
     const res = await fetch('/ask/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
-
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
       buffer = lines.pop();
-
       for (const line of lines) {
         if (!line.startsWith('data: ')) continue;
-        let evt;
-        try { evt = JSON.parse(line.slice(6)); } catch { continue; }
-
+        let evt; try { evt = JSON.parse(line.slice(6)); } catch { continue; }
         if (evt.type === 'session_id') {
           currentSessionId = evt.session_id;
-          document.getElementById('session-display').textContent = evt.session_id.slice(0, 8) + '…';
+          document.getElementById('session-display').textContent = evt.session_id.slice(0,8) + '…';
         }
-
-        if (evt.type === 'thinking_delta') {
-          thinkingText += evt.delta;
-          updateThinking(traceEl, thinkingText);
-        }
-
+        if (evt.type === 'thinking_delta') { thinkingText += evt.delta; updateThinking(traceEl, thinkingText); }
         if (evt.type === 'text_delta') {
           responseText += evt.delta;
           if (cursorEl.parentNode) cursorEl.remove();
@@ -1059,17 +733,9 @@ async function sendMessage() {
           contentEl.appendChild(cursorEl);
           scrollToBottom();
         }
-
-        if (evt.type === 'tool_call') {
-          addToolTrace(traceEl, evt.tool_call_id, evt.tool_name, evt.arguments);
-        }
-
-        if (evt.type === 'tool_result') {
-          updateToolTrace(traceEl, evt.tool_call_id, evt.content, evt.is_error);
-        }
-
+        if (evt.type === 'tool_call')   { addToolTrace(traceEl, evt.tool_call_id, evt.tool_name, evt.arguments); }
+        if (evt.type === 'tool_result') { updateToolTrace(traceEl, evt.tool_call_id, evt.content, evt.is_error); }
         if (evt.type === 'agent_end') break;
-
         if (evt.type === 'error') {
           if (cursorEl.parentNode) cursorEl.remove();
           contentEl.innerHTML += `<p style="color:var(--red)">${escHtml(evt.message)}</p>`;
@@ -1090,9 +756,6 @@ async function sendMessage() {
   scrollToBottom();
 }
 
-// ═══════════════════════════════════
-// MESSAGE DOM
-// ═══════════════════════════════════
 function appendUserMessage(text) {
   const wrap = document.createElement('div');
   wrap.className = 'msg-wrap user';
@@ -1108,7 +771,6 @@ function appendUserMessage(text) {
 function appendAssistantMessage() {
   const wrap = document.createElement('div');
   wrap.className = 'msg-wrap assistant';
-
   const traceEl = document.createElement('div');
   traceEl.className = 'process-trace';
   traceEl.innerHTML = `
@@ -1121,11 +783,9 @@ function appendAssistantMessage() {
   const tt = traceEl.querySelector('.trace-thinking');
   const tc = traceEl.querySelector('.trace-thinking-content');
   tt.addEventListener('click', () => tc.classList.toggle('open'));
-
   const contentEl = document.createElement('div');
   contentEl.className = 'msg-content';
   contentEl.dir = 'auto';
-
   wrap.appendChild(traceEl);
   wrap.appendChild(contentEl);
   document.getElementById('messages').appendChild(wrap);
@@ -1140,7 +800,6 @@ function updateThinking(traceEl, text) {
   tc.textContent = text;
   scrollToBottom();
 }
-
 function finalizeThinking(traceEl) {
   const dot = traceEl.querySelector('.thinking-dot');
   const label = traceEl.querySelector('.think-label');
@@ -1148,13 +807,9 @@ function finalizeThinking(traceEl) {
   if (label) label.textContent = 'thought';
 }
 
-// ═══════════════════════════════════
-// TOOL TRACE
-// ═══════════════════════════════════
 function addToolTrace(traceEl, id, name, args) {
   const row = document.createElement('div');
-  row.className = 'trace-tool';
-  row.id = 'tool-row-' + id;
+  row.className = 'trace-tool'; row.id = 'tool-row-' + id;
   row.innerHTML = `
     <div class="trace-tool-header" onclick="toggleToolBody('${id}')">
       <div class="tool-dot spin" id="tdot-${id}"></div>
@@ -1164,7 +819,7 @@ function addToolTrace(traceEl, id, name, args) {
     <div class="trace-tool-body" id="tbody-${id}">
       <div class="trace-tool-section">
         <div class="trace-section-label">input</div>
-        <div class="trace-code">${escHtml(JSON.stringify(args, null, 2))}</div>
+        <div class="trace-code">${escHtml(JSON.stringify(args,null,2))}</div>
       </div>
       <div id="tresult-${id}"></div>
     </div>
@@ -1172,30 +827,16 @@ function addToolTrace(traceEl, id, name, args) {
   traceEl.appendChild(row);
   scrollToBottom();
 }
-
-function toggleToolBody(id) {
-  document.getElementById('tbody-' + id).classList.toggle('open');
-}
-
+function toggleToolBody(id) { document.getElementById('tbody-'+id).classList.toggle('open'); }
 function updateToolTrace(traceEl, id, content, isError) {
-  const dot  = document.getElementById('tdot-' + id);
-  const stat = document.getElementById('tstat-' + id);
-  const res  = document.getElementById('tresult-' + id);
-
-  if (dot) { dot.classList.remove('spin'); dot.classList.add(isError ? 'error' : 'done'); }
-  if (stat) {
-    stat.textContent = isError ? 'error' : '✓ done';
-    stat.classList.add('show');
-    if (isError) stat.classList.add('err');
-  }
-  if (res) {
-    res.innerHTML = `
-      <div class="trace-tool-section">
-        <div class="trace-section-label">output</div>
-        <div class="trace-code">${escHtml(String(content))}</div>
-      </div>
-    `;
-    const body = document.getElementById('tbody-' + id);
+  const dot  = document.getElementById('tdot-'+id);
+  const stat = document.getElementById('tstat-'+id);
+  const res  = document.getElementById('tresult-'+id);
+  if (dot)  { dot.classList.remove('spin'); dot.classList.add(isError ? 'error' : 'done'); }
+  if (stat) { stat.textContent = isError ? 'error' : '✓ done'; stat.classList.add('show'); if (isError) stat.classList.add('err'); }
+  if (res)  {
+    res.innerHTML = `<div class="trace-tool-section"><div class="trace-section-label">output</div><div class="trace-code">${escHtml(String(content))}</div></div>`;
+    const body = document.getElementById('tbody-'+id);
     if (body) body.classList.add('open');
   }
   scrollToBottom();
@@ -1206,12 +847,7 @@ function scrollToBottom() {
   m.scrollTop = m.scrollHeight;
 }
 
-// ═══════════════════════════════════
-// CONFIG
-// ═══════════════════════════════════
-async function loadConfigData() {
-  await Promise.all([loadLLMTable(), loadAgentTable(), loadToolTable()]);
-}
+async function loadConfigData() { await Promise.all([loadLLMTable(), loadAgentTable(), loadToolTable()]); }
 
 async function loadLLMTable() {
   try {
@@ -1221,18 +857,11 @@ async function loadLLMTable() {
     tbody.innerHTML = '';
     list.forEach(l => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${escHtml(l.name)}</td>
-        <td style="font-family:var(--mono);font-size:12px">${escHtml(l.model_name)}</td>
-        <td style="color:var(--muted);font-size:12px;font-family:var(--mono)">${escHtml(l.base_url)}</td>
-        <td>${escHtml(l.api_format)}</td>
-        <td><button class="btn danger" onclick="deleteLLM('${escHtml(l.name)}')">delete</button></td>
-      `;
+      tr.innerHTML = `<td>${escHtml(l.name)}</td><td style="font-family:var(--mono);font-size:12px">${escHtml(l.model_name)}</td><td style="color:var(--muted);font-size:12px;font-family:var(--mono)">${escHtml(l.base_url)}</td><td>${escHtml(l.api_format)}</td><td><button class="btn danger" onclick="deleteLLM('${escHtml(l.name)}')">delete</button></td>`;
       tbody.appendChild(tr);
     });
   } catch {}
 }
-
 async function loadAgentTable() {
   try {
     const data = await api.get('/agents');
@@ -1241,18 +870,12 @@ async function loadAgentTable() {
     tbody.innerHTML = '';
     list.forEach(a => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${escHtml(a.name)}</td>
-        <td style="color:var(--blue);font-size:12px">${escHtml(a.llm_name || 'env default')}</td>
-        <td style="color:var(--muted);font-size:12px">${(a.tool_types||[]).join(', ')}</td>
-        <td><button class="btn danger" onclick="deleteAgent('${escHtml(a.name)}')">delete</button></td>
-      `;
+      tr.innerHTML = `<td>${escHtml(a.name)}</td><td style="color:var(--blue);font-size:12px">${escHtml(a.llm_name||'env default')}</td><td style="color:var(--muted);font-size:12px">${(a.tool_types||[]).join(', ')}</td><td><button class="btn danger" onclick="deleteAgent('${escHtml(a.name)}')">delete</button></td>`;
       tbody.appendChild(tr);
     });
     await loadAgentSelect();
   } catch {}
 }
-
 async function loadToolTable() {
   try {
     const data = await api.get('/tools');
@@ -1261,25 +884,14 @@ async function loadToolTable() {
     tbody.innerHTML = '';
     list.forEach(t => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${escHtml(t.name)}</td>
-        <td><span class="badge ${t.status}">${t.status}</span>${t.error ? `<br><span style="color:var(--red);font-size:11px">${escHtml(t.error)}</span>` : ''}</td>
-        <td style="font-family:var(--mono);font-size:12px">${escHtml(t.entry_point)}</td>
-        <td><button class="btn danger" onclick="deleteTool('${escHtml(t.name)}')">delete</button></td>
-      `;
+      tr.innerHTML = `<td>${escHtml(t.name)}</td><td><span class="badge ${t.status}">${t.status}</span>${t.error?`<br><span style="color:var(--red);font-size:11px">${escHtml(t.error)}</span>`:''}</td><td style="font-family:var(--mono);font-size:12px">${escHtml(t.entry_point)}</td><td><button class="btn danger" onclick="deleteTool('${escHtml(t.name)}')">delete</button></td>`;
       tbody.appendChild(tr);
     });
   } catch {}
 }
 
 async function saveLLM() {
-  const body = {
-    name: document.getElementById('llm-name').value.trim(),
-    model_name: document.getElementById('llm-model').value.trim(),
-    base_url: document.getElementById('llm-url').value.trim(),
-    api_key: document.getElementById('llm-key').value.trim(),
-    api_format: document.getElementById('llm-format').value,
-  };
+  const body = { name: document.getElementById('llm-name').value.trim(), model_name: document.getElementById('llm-model').value.trim(), base_url: document.getElementById('llm-url').value.trim(), api_key: document.getElementById('llm-key').value.trim(), api_format: document.getElementById('llm-format').value };
   if (!body.name||!body.model_name||!body.base_url||!body.api_key) { setStatus('llm-status','all fields required',false); return; }
   const res = await api.post('/llms', body);
   if (res.name) { setStatus('llm-status','saved: '+res.name,true); loadLLMTable(); }
@@ -1288,12 +900,7 @@ async function saveLLM() {
 async function deleteLLM(name) { await api.delete('/llms?name='+encodeURIComponent(name)); loadLLMTable(); }
 
 async function saveAgent() {
-  const body = {
-    name: document.getElementById('ag-name').value.trim(),
-    system_prompt: document.getElementById('ag-prompt').value.trim(),
-    tool_types: document.getElementById('ag-tools').value.split(',').map(s=>s.trim()).filter(Boolean),
-    llm_name: document.getElementById('ag-llm').value.trim() || null,
-  };
+  const body = { name: document.getElementById('ag-name').value.trim(), system_prompt: document.getElementById('ag-prompt').value.trim(), tool_types: document.getElementById('ag-tools').value.split(',').map(s=>s.trim()).filter(Boolean), llm_name: document.getElementById('ag-llm').value.trim()||null };
   if (!body.name||!body.system_prompt) { setStatus('agent-status','name and prompt required',false); return; }
   const res = await api.post('/agents', body);
   if (res.name) { setStatus('agent-status','saved: '+res.name,true); loadAgentTable(); }
@@ -1302,44 +909,27 @@ async function saveAgent() {
 async function deleteAgent(name) { await api.delete('/agents?name='+encodeURIComponent(name)); loadAgentTable(); }
 
 function initCodeEditor() {
-  codeEditor = CodeMirror.fromTextArea(document.getElementById('t-code-raw'), {
-    mode: 'python', theme: 'monokai', lineNumbers: true,
-    indentUnit: 4, tabSize: 4, indentWithTabs: false,
-  });
+  codeEditor = CodeMirror.fromTextArea(document.getElementById('t-code-raw'), { mode: 'python', theme: 'monokai', lineNumbers: true, indentUnit: 4, tabSize: 4, indentWithTabs: false });
   codeEditor.setValue('def run(query: str) -> str:\n    return query\n');
 }
 async function saveTool() {
-  let params;
-  try { params = JSON.parse(document.getElementById('t-params').value || '{}'); }
-  catch { setStatus('tool-status','invalid JSON in parameters',false); return; }
-  const body = {
-    name: document.getElementById('t-name').value.trim(),
-    description: document.getElementById('t-desc').value.trim(),
-    parameters: params,
-    code: codeEditor ? codeEditor.getValue() : '',
-    entry_point: document.getElementById('t-entry').value.trim() || 'run',
-  };
+  let params; try { params = JSON.parse(document.getElementById('t-params').value||'{}'); } catch { setStatus('tool-status','invalid JSON in parameters',false); return; }
+  const body = { name: document.getElementById('t-name').value.trim(), description: document.getElementById('t-desc').value.trim(), parameters: params, code: codeEditor?codeEditor.getValue():'', entry_point: document.getElementById('t-entry').value.trim()||'run' };
   if (!body.name||!body.description||!body.code) { setStatus('tool-status','name, description and code required',false); return; }
   const res = await api.post('/tools', body);
-  if (res.name) {
-    const ok = res.status === 'valid';
-    setStatus('tool-status', ok ? 'registered: '+res.name : 'saved with error: '+(res.error||''), ok);
-    loadToolTable();
-  } else setStatus('tool-status', res.detail||'error', false);
+  if (res.name) { const ok = res.status==='valid'; setStatus('tool-status', ok?'registered: '+res.name:'saved with error: '+(res.error||''), ok); loadToolTable(); }
+  else setStatus('tool-status', res.detail||'error', false);
 }
 async function deleteTool(name) { await api.delete('/tools?name='+encodeURIComponent(name)); loadToolTable(); }
 
-// ═══════════════════════════════════
-// UTILS
-// ═══════════════════════════════════
 function setStatus(id, msg, ok) {
   const el = document.getElementById(id);
   el.textContent = msg;
   el.className = 'status-msg ' + (ok ? 'ok' : 'err');
-  setTimeout(() => { el.textContent = ''; el.className = 'status-msg'; }, 4000);
+  setTimeout(() => { el.textContent=''; el.className='status-msg'; }, 4000);
 }
 function escHtml(str) {
-  if (typeof str !== 'string') str = JSON.stringify(str) || '';
+  if (typeof str !== 'string') str = JSON.stringify(str)||'';
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
