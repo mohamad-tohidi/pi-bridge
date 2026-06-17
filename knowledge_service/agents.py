@@ -28,7 +28,6 @@ _ENV_LLM = LLMConfig(
 
 
 def _resolve_llm(llm_name: Optional[str]) -> LLMConfig:
-    """Return the LLMConfig for llm_name, falling back to env if None or not found."""
     if llm_name:
         found = llm_storage.get(llm_name)
         if found:
@@ -82,7 +81,6 @@ class AgentManager:
         agent = storage.get_agent(name)
         if not agent:
             return None
-        # empty string means "revert to env default"
         new_llm = (
             None if request.llm_name == ""
             else (request.llm_name if request.llm_name is not None else agent.llm_name)
@@ -113,15 +111,15 @@ class AgentManager:
         ]
 
     def get_or_create_session(self, agent_name: str, session_id: Optional[str]) -> Tuple[PiSession, str]:
+        """Return an existing session by id, or create and ALWAYS persist a new one."""
         if session_id and session_id in self._sessions:
             return self._sessions[session_id][0], session_id
 
         session, llm_name = self._build_session(agent_name)
         sid = session_id or str(uuid.uuid4())
-
-        if session_id:
-            self._sessions[sid] = (session, agent_name, llm_name)
-
+        # Always store — callers that pre-create sessions via POST /sessions
+        # pass session_id=None; we must persist so the session survives.
+        self._sessions[sid] = (session, agent_name, llm_name)
         return session, sid
 
     def close_session(self, session_id: str) -> bool:
@@ -153,7 +151,6 @@ class AgentManager:
             del self._sessions[sid]
 
     def invalidate_sessions_for_llm(self, llm_name: str):
-        """Close all sessions that were built with the given LLM."""
         stale = [sid for sid, (_, _agent, lname) in self._sessions.items() if lname == llm_name]
         for sid in stale:
             self._sessions[sid][0].close()
@@ -200,7 +197,6 @@ class AgentManager:
             system_prompt=agent.system_prompt,
             custom_tools=custom_tools,
         )
-        # return llm_name so session tracking knows which LLM was used
         return session, (agent.llm_name if agent.llm_name else None)
 
 
