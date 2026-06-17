@@ -9,9 +9,9 @@
  */
 
 import { createInterface } from 'readline';
-import { mkdtempSync, writeFileSync, rmSync } from 'fs';
-import { tmpdir } from 'os';
-import { join } from 'path';
+import { mkdtempSync, writeFileSync, rmSync, existsSync, mkdirSync } from 'fs';
+import { tmpdir, homedir } from 'os';
+import { join, resolve } from 'path';
 import { getModel } from '@earendil-works/pi-ai';
 import { Type } from 'typebox';
 import {
@@ -30,6 +30,23 @@ import {
 // ---------------------------------------------------------------------------
 
 const emit = (obj) => process.stdout.write(JSON.stringify(obj) + '\n');
+
+/**
+ * Returns a guaranteed non-empty agentDir string.
+ * getAgentDir() may return undefined if ~/.pi/agent doesn't exist yet;
+ * we create the directory so DefaultResourceLoader never receives undefined.
+ */
+function safeAgentDir() {
+    let dir;
+    try { dir = getAgentDir(); } catch {}
+    if (!dir) {
+        dir = join(homedir(), '.pi', 'agent');
+    }
+    if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true });
+    }
+    return dir;
+}
 
 /** Map base_url hostname -> known provider name */
 function resolveProvider(baseUrl) {
@@ -184,8 +201,9 @@ const {
     skills: skillDefs = [],
 } = initMsg;
 
-const cwd = initCwd ?? process.cwd();
-const agentDir = getAgentDir();
+// Always resolve to a real absolute string — never pass undefined to the SDK
+const cwd = resolve(initCwd || process.cwd());
+const agentDir = safeAgentDir();
 
 // Validate thinking level
 const thinkingVal = modelConfig.thinking ?? 'off';
@@ -257,8 +275,9 @@ for (const toolDef of customToolDefs) {
 
 // ---------------------------------------------------------------------------
 // Build skills
-// The SDK Skill type requires filePath + baseDir (content is read from file).
-// We write each skill's markdown content to a temp file so the SDK can load it.
+// The SDK Skill type requires filePath + baseDir (content is read from the
+// file at filePath — there is no inline content field).
+// We write each skill's markdown to a temp file so the SDK can load it.
 // ---------------------------------------------------------------------------
 
 let skillsTempDir = null;
@@ -268,8 +287,8 @@ if (skillDefs.length > 0) {
     skillsTempDir = mkdtempSync(join(tmpdir(), 'pi-bridge-skills-'));
 
     for (const s of skillDefs) {
-        const fileName = `${s.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.md`;
-        const filePath = join(skillsTempDir, fileName);
+        const safeName = s.name.replace(/[^a-zA-Z0-9_-]/g, '_');
+        const filePath = join(skillsTempDir, `${safeName}.md`);
         writeFileSync(filePath, s.content ?? '', 'utf8');
 
         skills.push({
