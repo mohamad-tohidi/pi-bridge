@@ -373,16 +373,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 .trace-skill-header:hover { border-color: var(--purple); background: rgba(42,31,74,0.9); }
 
-/* hexagon icon */
-.skill-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  opacity: 0.9;
-}
-.skill-icon svg { display: block; }
-
 .skill-dot {
   width: 7px; height: 7px;
   border-radius: 2px;
@@ -582,7 +572,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .data-table tr:last-child td { border-bottom: none; }
 .data-table tr:hover td { background: var(--surface2); }
 
-/* skill table accent */
 .skill-table th { color: rgba(180,142,255,0.55); border-bottom-color: rgba(180,142,255,0.15); }
 .skill-table tr:hover td { background: rgba(42,31,74,0.4); }
 
@@ -616,7 +605,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .field textarea { resize: vertical; min-height: 70px; }
 .field select { appearance: none; cursor: pointer; }
 
-/* skill form accent focus */
 .skill-form .field input:focus,
 .skill-form .field select:focus,
 .skill-form .field textarea:focus { border-color: rgba(180,142,255,0.5); }
@@ -778,19 +766,18 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     <!-- Skills -->
     <div class="config-section">
       <div class="config-section-title skill-title">
-        <!-- hexagon icon -->
         <svg width="11" height="11" viewBox="0 0 11 11" fill="none" style="display:inline;vertical-align:middle;margin-right:5px;margin-bottom:1px"><polygon points="5.5,0.5 10,3 10,8 5.5,10.5 1,8 1,3" stroke="rgba(180,142,255,0.6)" stroke-width="1.2" fill="none"/></svg>
         skills
       </div>
       <table class="data-table skill-table" id="skill-table">
-        <thead><tr><th>name</th><th>description</th><th>tool types</th><th></th></tr></thead>
+        <thead><tr><th>name</th><th>description</th><th>allowed tools</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
       <div class="form-grid skill-form">
         <div class="field"><label>name</label><input id="sk-name" placeholder="web-research"></div>
-        <div class="field"><label>tool types (comma separated)</label><input id="sk-tools" placeholder="search, fetch"></div>
+        <div class="field"><label>allowed tools (comma separated, empty = all)</label><input id="sk-tools" placeholder="search, fetch"></div>
         <div class="field form-full"><label>description</label><input id="sk-desc" placeholder="What this skill does"></div>
-        <div class="field form-full"><label>instructions</label><textarea id="sk-instructions" rows="4" placeholder="Detailed instructions injected when this skill is loaded…"></textarea></div>
+        <div class="field form-full"><label>content (instructions injected into system prompt)</label><textarea id="sk-content" rows="4" placeholder="Detailed instructions injected when this skill is loaded…"></textarea></div>
       </div>
       <div class="btn-row">
         <button class="btn skill-primary" onclick="saveSkill()">add skill</button>
@@ -1258,7 +1245,7 @@ async function loadSkillTable() {
           </span>
         </td>
         <td style="color:var(--muted);font-size:12px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(s.description || '—')}</td>
-        <td style="color:rgba(180,142,255,0.7);font-size:12px">${(s.tool_types||[]).join(', ') || '—'}</td>
+        <td style="color:rgba(180,142,255,0.7);font-size:12px">${(s.allowed_tools||[]).join(', ') || '—'}</td>
         <td><button class="btn danger" onclick="deleteSkill('${escHtml(s.name)}')">delete</button></td>
       `;
       tbody.appendChild(tr);
@@ -1316,22 +1303,22 @@ async function deleteAgent(name) { await api.delete('/agents?name='+encodeURICom
 
 async function saveSkill() {
   const body = {
-    name:         document.getElementById('sk-name').value.trim(),
-    description:  document.getElementById('sk-desc').value.trim(),
-    instructions: document.getElementById('sk-instructions').value.trim(),
-    tool_types:   document.getElementById('sk-tools').value.split(',').map(s=>s.trim()).filter(Boolean),
+    name:          document.getElementById('sk-name').value.trim(),
+    description:   document.getElementById('sk-desc').value.trim(),
+    content:       document.getElementById('sk-content').value.trim(),   // was: instructions
+    allowed_tools: document.getElementById('sk-tools').value.split(',').map(s=>s.trim()).filter(Boolean), // was: tool_types
   };
-  if (!body.name || !body.description || !body.instructions) {
-    setStatus('skill-status', 'name, description and instructions are required', false);
+  if (!body.name || !body.description || !body.content) {
+    setStatus('skill-status', 'name, description and content are required', false);
     return;
   }
   const res = await api.post('/skills', body);
   if (res.name) {
     setStatus('skill-status', 'saved: ' + res.name, true);
-    document.getElementById('sk-name').value = '';
-    document.getElementById('sk-desc').value = '';
-    document.getElementById('sk-instructions').value = '';
-    document.getElementById('sk-tools').value = '';
+    document.getElementById('sk-name').value    = '';
+    document.getElementById('sk-desc').value    = '';
+    document.getElementById('sk-content').value = '';
+    document.getElementById('sk-tools').value   = '';
     loadSkillTable();
   } else {
     setStatus('skill-status', res.detail || 'error', false);
