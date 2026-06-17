@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>agent</title>
+<title>Agent Factory</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231a1a18'/%3E%3Ccircle cx='16' cy='12' r='5' fill='none' stroke='%233fb950' stroke-width='2'/%3E%3Cpath d='M8 26c0-4.4 3.6-8 8-8s8 3.6 8 8' fill='none' stroke='%233fb950' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='12' r='2' fill='%233fb950'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -179,6 +180,12 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 #sb-toggle:hover { color: var(--bright); border-color: var(--subtle); }
 #sb-toggle.shifted { left: calc(var(--sidebar-w) + 14px); }
 
+/* sidebar shortcut hint */
+#sb-toggle::after {
+  content: '';
+  pointer-events: none;
+}
+
 /* overlay */
 #sb-overlay {
   display: none;
@@ -189,6 +196,60 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   animation: fadeIn 0.15s ease;
 }
 #sb-overlay.show { display: block; }
+
+/* ══════════════════════════════════════
+   AGENT BAR  (top of chat, inline)
+══════════════════════════════════════ */
+#agent-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  padding: 10px 20px 0;
+  pointer-events: none;
+}
+#agent-bar-inner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 8px 4px 12px;
+  pointer-events: all;
+  transition: border-color 0.15s;
+}
+#agent-bar-inner:focus-within { border-color: var(--subtle); }
+#agent-bar-label {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+#agent-bar-select {
+  background: transparent;
+  border: none;
+  color: var(--bright);
+  font-family: var(--font);
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+  padding: 2px 20px 2px 4px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23706e62'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 2px center;
+  min-width: 100px;
+}
+#agent-bar-select option { background: var(--surface2); }
+#agent-bar-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--dim);
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+#agent-bar-dot.active { background: var(--green); }
 
 /* ══════════════════════════════════════
    PAGES
@@ -204,11 +265,13 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 #messages {
   flex: 1;
   overflow-y: auto;
-  padding: 48px 20px 20px;
+  padding: 52px 20px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
+/* lock scroll during stream */
+#messages.scroll-locked { overflow-y: hidden; }
 
 .msg-wrap {
   width: 100%;
@@ -422,7 +485,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 #input-box {
   width: 100%;
-  max-width: 720px;
+  max-width: 560px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -432,6 +495,34 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   transition: border-color 0.15s;
 }
 #input-box:focus-within { border-color: var(--subtle); }
+
+/* center the input when chat is empty */
+#page-chat.empty #input-wrap {
+  position: absolute;
+  left: 0; right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0 20px;
+  transition: top 0.4s cubic-bezier(.4,0,.2,1), transform 0.4s cubic-bezier(.4,0,.2,1), padding 0.4s;
+}
+#page-chat.empty #messages { visibility: hidden; }
+
+/* animate input to bottom when first message sent */
+#page-chat.transitioning #input-wrap {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 0;
+  top: auto;
+  transform: none;
+  padding: 0 20px 24px;
+  transition: none;
+  animation: inputSlideDown 0.38s cubic-bezier(.4,0,.2,1) forwards;
+}
+@keyframes inputSlideDown {
+  from { bottom: 40%; opacity: 0.7; transform: translateY(20px); }
+  to   { bottom: 0;   opacity: 1;   transform: translateY(0); }
+}
+
 #user-input {
   flex: 1;
   background: transparent;
@@ -583,7 +674,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 <body>
 
 <!-- ══ SIDEBAR TOGGLE ══ -->
-<button id="sb-toggle" title="menu" onclick="toggleSidebar()">
+<button id="sb-toggle" title="menu (Ctrl+\\)" onclick="toggleSidebar()">
   <svg width="15" height="12" viewBox="0 0 15 12" fill="none">
     <rect x="0" y="0"  width="15" height="1.5" rx="0.75" fill="currentColor"/>
     <rect x="0" y="5"  width="15" height="1.5" rx="0.75" fill="currentColor"/>
@@ -594,7 +685,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 <!-- ══ SIDEBAR ══ -->
 <div id="sidebar">
   <div id="sidebar-top">
-    <div id="sidebar-title">agent</div>
+    <div id="sidebar-title">agent factory</div>
     <div class="sb-label">active agent</div>
     <select id="agent-select"><option value="">— select —</option></select>
     <div id="session-display">no session</div>
@@ -627,8 +718,19 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 <div id="sb-overlay" onclick="closeSidebar()"></div>
 
 <!-- ══ CHAT PAGE ══ -->
-<div id="page-chat" class="page active">
+<div id="page-chat" class="page active empty">
+
+  <!-- ══ AGENT BAR ══ -->
+  <div id="agent-bar">
+    <div id="agent-bar-inner">
+      <span id="agent-bar-label">agent</span>
+      <select id="agent-bar-select"><option value="">— select —</option></select>
+      <div id="agent-bar-dot"></div>
+    </div>
+  </div>
+
   <div id="messages"></div>
+
   <div id="input-wrap">
     <div id="input-box">
       <textarea id="user-input" rows="1" placeholder="message the agent…"></textarea>
@@ -724,6 +826,7 @@ let currentSessionId = null;
 let isStreaming = false;
 let codeEditor = null;
 let rtlEnabled = false;
+let hasMessages = false;
 
 // ═══════════════════════════════════
 // SIDEBAR
@@ -741,6 +844,11 @@ function closeSidebar() {
   document.getElementById('sb-overlay').classList.remove('show');
   document.getElementById('sb-toggle').classList.remove('shifted');
 }
+
+// Ctrl+\ shortcut to toggle sidebar
+document.addEventListener('keydown', function(e) {
+  if (e.ctrlKey && e.key === '\\') { e.preventDefault(); toggleSidebar(); }
+});
 
 // ═══════════════════════════════════
 // NAV
@@ -779,31 +887,44 @@ const api = {
 async function init() {
   await loadAgentSelect();
   initCodeEditor();
+  // start in empty/centered state
+  document.getElementById('page-chat').classList.add('empty');
 }
 
 async function loadAgentSelect() {
   try {
     const data = await api.get('/agents');
     const list = Array.isArray(data) ? data : (data && data.name ? [data] : []);
-    const sel = document.getElementById('agent-select');
-    const prev = sel.value;
-    sel.innerHTML = '<option value="">— select —</option>';
-    list.forEach(a => {
-      const o = document.createElement('option');
-      o.value = a.name; o.textContent = a.name;
-      if (a.name === prev) o.selected = true;
-      sel.appendChild(o);
+
+    // populate both selects
+    ['agent-select', 'agent-bar-select'].forEach(id => {
+      const sel = document.getElementById(id);
+      const prev = sel.value;
+      sel.innerHTML = '<option value="">— select —</option>';
+      list.forEach(a => {
+        const o = document.createElement('option');
+        o.value = a.name; o.textContent = a.name;
+        if (a.name === prev) o.selected = true;
+        sel.appendChild(o);
+      });
+      if (prev && list.find(a => a.name === prev)) currentAgent = prev;
     });
-    if (prev && list.find(a => a.name === prev)) currentAgent = prev;
   } catch {}
 }
 
-document.getElementById('agent-select').addEventListener('change', function() {
-  currentAgent = this.value || null;
+// keep both selects in sync
+function onAgentChange(val) {
+  currentAgent = val || null;
   currentSessionId = null;
   document.getElementById('session-display').textContent = 'no session';
+  document.getElementById('agent-select').value = val;
+  document.getElementById('agent-bar-select').value = val;
+  const dot = document.getElementById('agent-bar-dot');
+  dot.classList.toggle('active', !!val);
   updateLLMDisplay();
-});
+}
+document.getElementById('agent-select').addEventListener('change', function() { onAgentChange(this.value); });
+document.getElementById('agent-bar-select').addEventListener('change', function() { onAgentChange(this.value); });
 
 async function updateLLMDisplay() {
   if (!currentAgent) { document.getElementById('llm-name-display').textContent = 'env default'; return; }
@@ -815,8 +936,11 @@ async function updateLLMDisplay() {
 
 function newSession() {
   currentSessionId = null;
+  hasMessages = false;
   document.getElementById('session-display').textContent = 'no session';
   document.getElementById('messages').innerHTML = '';
+  document.getElementById('page-chat').classList.add('empty');
+  document.getElementById('page-chat').classList.remove('transitioning');
   closeSidebar();
 }
 
@@ -834,18 +958,52 @@ userInput.addEventListener('keydown', function(e) {
 document.getElementById('send-btn').addEventListener('click', sendMessage);
 
 // ═══════════════════════════════════
+// VIM-LIKE SCROLL  (j/k when input not focused)
+// ═══════════════════════════════════
+document.addEventListener('keydown', function(e) {
+  if (isStreaming) return;
+  const tag = document.activeElement.tagName;
+  if (tag === 'TEXTAREA' || tag === 'INPUT' || tag === 'SELECT') return;
+  const msgs = document.getElementById('messages');
+  if (e.key === 'j') { msgs.scrollBy({ top: 80,  behavior: 'smooth' }); }
+  if (e.key === 'k') { msgs.scrollBy({ top: -80, behavior: 'smooth' }); }
+  if (e.key === 'G') { msgs.scrollTo({ top: msgs.scrollHeight, behavior: 'smooth' }); }
+  if (e.key === 'g' && e.shiftKey === false) {
+    // gg: need two g presses — handled with a tiny timer
+    if (window._lastKey === 'g') { msgs.scrollTo({ top: 0, behavior: 'smooth' }); window._lastKey = null; return; }
+    window._lastKey = 'g';
+    setTimeout(() => { window._lastKey = null; }, 500);
+  }
+});
+
+// ═══════════════════════════════════
 // SEND
 // ═══════════════════════════════════
 async function sendMessage() {
   if (isStreaming) return;
   const text = userInput.value.trim();
   if (!text) return;
-  if (!currentAgent) { alert('select an agent first'); toggleSidebar(); return; }
+  if (!currentAgent) { alert('select an agent first'); return; }
+
+  // animate input from center to bottom on first message
+  const chatPage = document.getElementById('page-chat');
+  if (!hasMessages) {
+    hasMessages = true;
+    chatPage.classList.add('transitioning');
+    chatPage.classList.remove('empty');
+    setTimeout(() => {
+      chatPage.classList.remove('transitioning');
+    }, 400);
+  }
 
   userInput.value = '';
   userInput.style.height = 'auto';
   document.getElementById('send-btn').disabled = true;
   isStreaming = true;
+
+  // lock scroll during stream
+  const msgs = document.getElementById('messages');
+  msgs.classList.add('scroll-locked');
 
   appendUserMessage(text);
   const { traceEl, contentEl } = appendAssistantMessage();
@@ -927,6 +1085,7 @@ async function sendMessage() {
   if (cursorEl.parentNode) cursorEl.remove();
   finalizeThinking(traceEl);
   isStreaming = false;
+  msgs.classList.remove('scroll-locked');
   document.getElementById('send-btn').disabled = false;
   scrollToBottom();
 }
