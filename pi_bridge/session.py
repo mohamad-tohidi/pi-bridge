@@ -16,6 +16,8 @@ from .types import (
     Provider,
     ResponseEvent,
     ResponseEventTransformer,
+    Skill,
+    SkillAccessEvent,
     TextDeltaEvent,
     ThinkingDeltaEvent,
     ToolCallEvent,
@@ -91,6 +93,7 @@ class PiSession:
         system_prompt: str = "",
         tools: list[str] | None = None,
         custom_tools: list[CustomTool] | None = None,
+        skills: list[Skill] | None = None,
         persist: bool = False,
         bridge_path: str = "",
         transformers: list[ResponseEventTransformer] | None = None,
@@ -98,6 +101,7 @@ class PiSession:
         self._provider = provider
         self._model = model
         self._custom_tools: list[CustomTool] = custom_tools or []
+        self._skills: list[Skill] = skills or []
         self._transformers: list[ResponseEventTransformer] = transformers or []
         self._closed = False
 
@@ -152,6 +156,15 @@ class PiSession:
                 }
                 for t in self._custom_tools
             ],
+            "skills": [
+                {
+                    "name": s.name,
+                    "description": s.description,
+                    "content": s.content,
+                    "allowed_tools": s.allowed_tools,
+                }
+                for s in self._skills
+            ],
             "persist": persist,
         })
 
@@ -190,7 +203,6 @@ class PiSession:
             try:
                 return json.loads(line)
             except json.JSONDecodeError:
-                # Ignore malformed lines (shouldn't happen in normal operation)
                 continue
 
     def _drain_stderr(self) -> None:
@@ -217,7 +229,6 @@ class PiSession:
         tool_name = raw["tool"]
         args = raw.get("args", {})
 
-        # Find matching custom tool
         fn = None
         for t in self._custom_tools:
             if t.name == tool_name:
@@ -255,6 +266,7 @@ class PiSession:
     def send_stream(self, message: str, transformers: list[ResponseEventTransformer] | None = None) -> Iterator[ResponseEvent]:
         """
         Stream events for one agent turn.
+        Emits SkillAccessEvent for each active skill before the first token.
         Handles custom tool_request events inline.
         Yields ResponseEvents until agent_end is received.
         """
@@ -262,6 +274,10 @@ class PiSession:
         self._write({"type": "prompt", "message": message})
 
         def _event_generator():
+            # Announce which skills are active at the start of each turn
+            for skill in self._skills:
+                yield SkillAccessEvent(skill_name=skill.name)
+
             while True:
                 self._check_alive()
                 raw = self._read_line()
@@ -287,13 +303,13 @@ class PiSession:
                     break
 
         events = _event_generator()
-        
+
         # Combine session-level transformers with call-level transformers
         all_transformers = self._transformers + (transformers or [])
-        
+
         for transformer in all_transformers:
             events = transformer.transform(events)
-        
+
         yield from events
 
     def send(self, message: str) -> list[ResponseEvent]:
@@ -311,7 +327,6 @@ class PiSession:
                 raise BridgeError("Bridge closed before get_messages response")
             if raw.get("type") == "response" and raw.get("command") == "get_messages":
                 return raw.get("data", {}).get("messages", [])
-            # Skip other events that may arrive (e.g. if called after send finishes)
 
     @property
     def state(self) -> dict:
