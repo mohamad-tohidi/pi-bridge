@@ -14,24 +14,26 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
 <style>
 :root {
-  --bg:       #1a1a18;
-  --surface:  #222220;
-  --surface2: #292926;
-  --border:   #333330;
-  --dim:      #44443f;
-  --muted:    #706e62;
-  --subtle:   #9a9585;
-  --text:     #d6c9a8;
-  --bright:   #e8d9b8;
-  --green:    #3fb950;
-  --green-dim:#1a3a1e;
-  --yellow:   #d29922;
-  --red:      #f85149;
-  --blue:     #58a6ff;
-  --font:     'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  --mono:     'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --bg:        #1a1a18;
+  --surface:   #222220;
+  --surface2:  #292926;
+  --border:    #333330;
+  --dim:       #44443f;
+  --muted:     #706e62;
+  --subtle:    #9a9585;
+  --text:      #d6c9a8;
+  --bright:    #e8d9b8;
+  --green:     #3fb950;
+  --green-dim: #1a3a1e;
+  --yellow:    #d29922;
+  --red:       #f85149;
+  --blue:      #58a6ff;
+  --purple:    #b48eff;
+  --purple-dim:#2a1f4a;
+  --font:      'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --mono:      'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
   --sidebar-w: 260px;
-  --radius:   6px;
+  --radius:    6px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.65; overflow: hidden; }
@@ -71,7 +73,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   margin-bottom: 14px;
 }
 
-/* agent selector */
 .sb-label { font-size: 11px; color: var(--muted); margin-bottom: 5px; }
 #agent-select {
   width: 100%;
@@ -100,15 +101,9 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-#llm-display {
-  margin-top: 4px;
-  font-size: 11px;
-  color: var(--muted);
-}
+#llm-display { margin-top: 4px; font-size: 11px; color: var(--muted); }
 #llm-display span { color: var(--blue); }
 
-/* sidebar nav */
 #sidebar-nav {
   padding: 12px 10px;
   border-bottom: 1px solid var(--border);
@@ -161,11 +156,9 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 .sb-action-btn:hover { color: var(--bright); border-color: var(--subtle); }
 
-/* sidebar toggle button (always visible) */
 #sb-toggle {
   position: fixed;
-  top: 14px;
-  left: 14px;
+  top: 14px; left: 14px;
   z-index: 101;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -179,7 +172,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 #sb-toggle:hover { color: var(--bright); border-color: var(--subtle); }
 #sb-toggle.shifted { left: calc(var(--sidebar-w) + 14px); }
 
-/* overlay */
 #sb-overlay {
   display: none;
   position: fixed;
@@ -217,7 +209,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   animation: msgIn 0.18s ease;
 }
 
-/* user message */
 .msg-wrap.user .msg-content {
   color: var(--text);
   font-size: 14px;
@@ -230,14 +221,13 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   border-radius: var(--radius);
 }
 
-/* assistant message */
 .msg-wrap.assistant .msg-content {
   color: var(--bright);
   font-size: 14.5px;
   line-height: 1.75;
 }
 
-/* ── process trace (thinking + tool calls) ── */
+/* ── process trace ── */
 .process-trace {
   margin-bottom: 10px;
   display: flex;
@@ -287,7 +277,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 .trace-thinking-content.open { display: block; }
 
-/* tool call row */
+/* ── tool call row ── */
 .trace-tool {
   display: flex;
   flex-direction: column;
@@ -358,6 +348,88 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   border-radius: 4px;
 }
 
+/* ══════════════════════════════════════
+   SKILL TRACE  (distinct from tool calls)
+══════════════════════════════════════ */
+.trace-skill {
+  display: flex;
+  flex-direction: column;
+  animation: fadeSlideIn 0.18s ease;
+}
+.trace-skill-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  padding: 5px 12px 5px 10px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(180,142,255,0.35);
+  background: var(--purple-dim);
+  font-size: 12px;
+  color: var(--purple);
+  width: fit-content;
+  transition: border-color 0.12s, background 0.12s;
+}
+.trace-skill-header:hover { border-color: var(--purple); background: rgba(42,31,74,0.9); }
+
+/* hexagon icon */
+.skill-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+.skill-icon svg { display: block; }
+
+.skill-dot {
+  width: 7px; height: 7px;
+  border-radius: 2px;
+  background: var(--purple);
+  flex-shrink: 0;
+  transition: background 0.3s, opacity 0.3s;
+  transform: rotate(45deg);
+}
+.skill-dot.spin  { animation: skillSpin 1s linear infinite; background: var(--purple); opacity: 0.8; }
+.skill-dot.done  { background: var(--purple); opacity: 1; animation: none; }
+.skill-dot.error { background: var(--red); transform: rotate(45deg); animation: none; }
+
+.skill-tag {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--purple);
+  opacity: 0.7;
+  font-family: var(--font);
+  padding: 1px 5px;
+  border: 1px solid rgba(180,142,255,0.3);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.skill-name-label { color: var(--purple); font-weight: 500; font-size: 12px; }
+.skill-status-label { color: var(--purple); font-size: 11px; opacity: 0; transition: opacity 0.3s; }
+.skill-status-label.show { opacity: 0.8; }
+.skill-status-label.err  { color: var(--red); opacity: 1; }
+
+.trace-skill-body {
+  display: none;
+  margin-top: 4px;
+  border: 1px solid rgba(180,142,255,0.2);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: rgba(26,18,44,0.6);
+  animation: fadeIn 0.15s ease;
+}
+.trace-skill-body.open { display: block; }
+.trace-skill-section {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(180,142,255,0.12);
+}
+.trace-skill-section:last-child { border-bottom: none; }
+.trace-skill-section .trace-section-label { color: rgba(180,142,255,0.5); }
+.trace-skill-section .trace-code { color: rgba(180,142,255,0.8); }
+
 /* ── markdown ── */
 .msg-content p { margin-bottom: 10px; }
 .msg-content p:last-child { margin-bottom: 0; }
@@ -403,7 +475,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 .msg-content th { color: var(--bright); background: var(--surface); }
 
-/* streaming cursor */
 .stream-cursor {
   display: inline-block;
   width: 2px; height: 1em;
@@ -486,6 +557,10 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   padding-bottom: 8px;
   border-bottom: 1px solid var(--border);
 }
+.config-section-title.skill-title {
+  color: rgba(180,142,255,0.6);
+  border-bottom-color: rgba(180,142,255,0.2);
+}
 
 .data-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
 .data-table th {
@@ -506,15 +581,21 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 .data-table tr:last-child td { border-bottom: none; }
 .data-table tr:hover td { background: var(--surface2); }
+
+/* skill table accent */
+.skill-table th { color: rgba(180,142,255,0.55); border-bottom-color: rgba(180,142,255,0.15); }
+.skill-table tr:hover td { background: rgba(42,31,74,0.4); }
+
 .badge {
   font-size: 10px;
   padding: 2px 7px;
   border-radius: 3px;
   font-family: var(--mono);
 }
-.badge.valid   { color: var(--green); background: var(--green-dim); }
-.badge.invalid { color: var(--red);   background: rgba(248,81,73,0.12); }
-.badge.pending { color: var(--yellow);background: rgba(210,153,34,0.12); }
+.badge.valid   { color: var(--green);  background: var(--green-dim); }
+.badge.invalid { color: var(--red);    background: rgba(248,81,73,0.12); }
+.badge.pending { color: var(--yellow); background: rgba(210,153,34,0.12); }
+.badge.skill   { color: var(--purple); background: var(--purple-dim); }
 
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
 .form-full { grid-column: 1 / -1; }
@@ -534,6 +615,11 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--subtle); }
 .field textarea { resize: vertical; min-height: 70px; }
 .field select { appearance: none; cursor: pointer; }
+
+/* skill form accent focus */
+.skill-form .field input:focus,
+.skill-form .field select:focus,
+.skill-form .field textarea:focus { border-color: rgba(180,142,255,0.5); }
 
 .CodeMirror {
   border: 1px solid var(--border) !important;
@@ -556,10 +642,12 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   cursor: pointer;
   transition: color 0.12s, border-color 0.12s, background 0.12s;
 }
-.btn:hover { color: var(--bright); border-color: var(--subtle); background: var(--surface2); }
-.btn.primary { border-color: var(--subtle); color: var(--bright); }
+.btn:hover         { color: var(--bright);  border-color: var(--subtle); background: var(--surface2); }
+.btn.primary       { border-color: var(--subtle); color: var(--bright); }
 .btn.primary:hover { border-color: var(--green); color: var(--green); }
-.btn.danger:hover  { border-color: var(--red);   color: var(--red); }
+.btn.skill-primary { border-color: rgba(180,142,255,0.4); color: var(--purple); }
+.btn.skill-primary:hover { border-color: var(--purple); background: var(--purple-dim); }
+.btn.danger:hover  { border-color: var(--red); color: var(--red); }
 .status-msg { font-size: 12px; padding: 5px 0; min-height: 22px; }
 .status-msg.ok  { color: var(--green); }
 .status-msg.err { color: var(--red); }
@@ -578,6 +666,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 @keyframes blink       { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
 @keyframes pulse       { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
 @keyframes spin        { to { transform: rotate(360deg); } }
+@keyframes skillSpin   { 0% { transform: rotate(45deg); } 100% { transform: rotate(405deg); } }
 </style>
 </head>
 <body>
@@ -686,6 +775,29 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
       <div class="status-msg" id="agent-status"></div>
     </div>
 
+    <!-- Skills -->
+    <div class="config-section">
+      <div class="config-section-title skill-title">
+        <!-- hexagon icon -->
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none" style="display:inline;vertical-align:middle;margin-right:5px;margin-bottom:1px"><polygon points="5.5,0.5 10,3 10,8 5.5,10.5 1,8 1,3" stroke="rgba(180,142,255,0.6)" stroke-width="1.2" fill="none"/></svg>
+        skills
+      </div>
+      <table class="data-table skill-table" id="skill-table">
+        <thead><tr><th>name</th><th>description</th><th>tool types</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="form-grid skill-form">
+        <div class="field"><label>name</label><input id="sk-name" placeholder="web-research"></div>
+        <div class="field"><label>tool types (comma separated)</label><input id="sk-tools" placeholder="search, fetch"></div>
+        <div class="field form-full"><label>description</label><input id="sk-desc" placeholder="What this skill does"></div>
+        <div class="field form-full"><label>instructions</label><textarea id="sk-instructions" rows="4" placeholder="Detailed instructions injected when this skill is loaded…"></textarea></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn skill-primary" onclick="saveSkill()">add skill</button>
+      </div>
+      <div class="status-msg" id="skill-status"></div>
+    </div>
+
     <!-- Tools -->
     <div class="config-section">
       <div class="config-section-title">dynamic tools</div>
@@ -767,10 +879,10 @@ function toggleRTL() {
 // API
 // ═══════════════════════════════════
 const api = {
-  get:    u    => fetch(u).then(r => r.json()),
-  post:   (u,b)=> fetch(u,{method:'POST',  headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(r=>r.json()),
-  patch:  (u,b)=> fetch(u,{method:'PATCH', headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(r=>r.json()),
-  delete: u    => fetch(u,{method:'DELETE'}).then(r=>r.json()),
+  get:    u     => fetch(u).then(r => r.json()),
+  post:   (u,b) => fetch(u,{method:'POST',  headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(r=>r.json()),
+  patch:  (u,b) => fetch(u,{method:'PATCH', headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(r=>r.json()),
+  delete: u     => fetch(u,{method:'DELETE'}).then(r=>r.json()),
 };
 
 // ═══════════════════════════════════
@@ -852,9 +964,7 @@ async function sendMessage() {
 
   let thinkingText = '';
   let responseText = '';
-  let cursorEl = null;
-
-  cursorEl = document.createElement('span');
+  const cursorEl = document.createElement('span');
   cursorEl.className = 'stream-cursor';
   contentEl.appendChild(cursorEl);
 
@@ -905,9 +1015,16 @@ async function sendMessage() {
         if (evt.type === 'tool_call') {
           addToolTrace(traceEl, evt.tool_call_id, evt.tool_name, evt.arguments);
         }
-
         if (evt.type === 'tool_result') {
           updateToolTrace(traceEl, evt.tool_call_id, evt.content, evt.is_error);
+        }
+
+        // ── skill events ──
+        if (evt.type === 'skill_call') {
+          addSkillTrace(traceEl, evt.skill_id, evt.skill_name);
+        }
+        if (evt.type === 'skill_result') {
+          updateSkillTrace(traceEl, evt.skill_id, evt.content, evt.is_error);
         }
 
         if (evt.type === 'agent_end') break;
@@ -985,7 +1102,7 @@ function updateThinking(traceEl, text) {
 function finalizeThinking(traceEl) {
   const dot = traceEl.querySelector('.thinking-dot');
   const label = traceEl.querySelector('.think-label');
-  if (dot) { dot.classList.remove('pulse'); dot.classList.add('done'); }
+  if (dot)   { dot.classList.remove('pulse'); dot.classList.add('done'); }
   if (label) label.textContent = 'thought';
 }
 
@@ -997,7 +1114,7 @@ function addToolTrace(traceEl, id, name, args) {
   row.className = 'trace-tool';
   row.id = 'tool-row-' + id;
   row.innerHTML = `
-    <div class="trace-tool-header" onclick="toggleToolBody('${id}')">
+    <div class="trace-tool-header" onclick="toggleBody('tbody-${id}')">
       <div class="tool-dot spin" id="tdot-${id}"></div>
       <span class="tool-name-label">${escHtml(name)}</span>
       <span class="tool-status-label" id="tstat-${id}"></span>
@@ -1014,32 +1131,59 @@ function addToolTrace(traceEl, id, name, args) {
   scrollToBottom();
 }
 
-function toggleToolBody(id) {
-  document.getElementById('tbody-' + id).classList.toggle('open');
-}
-
 function updateToolTrace(traceEl, id, content, isError) {
-  const dot  = document.getElementById('tdot-' + id);
-  const stat = document.getElementById('tstat-' + id);
+  const dot  = document.getElementById('tdot-'    + id);
+  const stat = document.getElementById('tstat-'   + id);
   const res  = document.getElementById('tresult-' + id);
-
-  if (dot) { dot.classList.remove('spin'); dot.classList.add(isError ? 'error' : 'done'); }
-  if (stat) {
-    stat.textContent = isError ? 'error' : '✓ done';
-    stat.classList.add('show');
-    if (isError) stat.classList.add('err');
-  }
-  if (res) {
-    res.innerHTML = `
-      <div class="trace-tool-section">
-        <div class="trace-section-label">output</div>
-        <div class="trace-code">${escHtml(String(content))}</div>
-      </div>
-    `;
+  if (dot)  { dot.classList.remove('spin');  dot.classList.add(isError ? 'error' : 'done'); }
+  if (stat) { stat.textContent = isError ? 'error' : '✓ done'; stat.classList.add('show'); if (isError) stat.classList.add('err'); }
+  if (res)  {
+    res.innerHTML = `<div class="trace-tool-section"><div class="trace-section-label">output</div><div class="trace-code">${escHtml(String(content))}</div></div>`;
     const body = document.getElementById('tbody-' + id);
     if (body) body.classList.add('open');
   }
   scrollToBottom();
+}
+
+// ═══════════════════════════════════
+// SKILL TRACE
+// ═══════════════════════════════════
+function addSkillTrace(traceEl, id, name) {
+  const row = document.createElement('div');
+  row.className = 'trace-skill';
+  row.id = 'skill-row-' + id;
+  row.innerHTML = `
+    <div class="trace-skill-header" onclick="toggleBody('skbody-${id}')">
+      <div class="skill-dot spin" id="sdot-${id}"></div>
+      <span class="skill-tag">skill</span>
+      <span class="skill-name-label">${escHtml(name)}</span>
+      <span class="skill-status-label" id="sstat-${id}"></span>
+    </div>
+    <div class="trace-skill-body" id="skbody-${id}">
+      <div id="sresult-${id}"></div>
+    </div>
+  `;
+  traceEl.appendChild(row);
+  scrollToBottom();
+}
+
+function updateSkillTrace(traceEl, id, content, isError) {
+  const dot  = document.getElementById('sdot-'     + id);
+  const stat = document.getElementById('sstat-'    + id);
+  const res  = document.getElementById('sresult-'  + id);
+  if (dot)  { dot.classList.remove('spin'); dot.classList.add(isError ? 'error' : 'done'); }
+  if (stat) { stat.textContent = isError ? 'error' : '✦ loaded'; stat.classList.add('show'); if (isError) stat.classList.add('err'); }
+  if (res && content) {
+    res.innerHTML = `<div class="trace-skill-section"><div class="trace-section-label">context injected</div><div class="trace-code">${escHtml(String(content))}</div></div>`;
+    const body = document.getElementById('skbody-' + id);
+    if (body) body.classList.add('open');
+  }
+  scrollToBottom();
+}
+
+function toggleBody(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('open');
 }
 
 function scrollToBottom() {
@@ -1051,7 +1195,7 @@ function scrollToBottom() {
 // CONFIG
 // ═══════════════════════════════════
 async function loadConfigData() {
-  await Promise.all([loadLLMTable(), loadAgentTable(), loadToolTable()]);
+  await Promise.all([loadLLMTable(), loadAgentTable(), loadSkillTable(), loadToolTable()]);
 }
 
 async function loadLLMTable() {
@@ -1094,6 +1238,34 @@ async function loadAgentTable() {
   } catch {}
 }
 
+async function loadSkillTable() {
+  try {
+    const data = await api.get('/skills');
+    const list = Array.isArray(data) ? data : (data && data.name ? [data] : []);
+    const tbody = document.querySelector('#skill-table tbody');
+    tbody.innerHTML = '';
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted);font-size:12px">no skills registered</td></tr>';
+      return;
+    }
+    list.forEach(s => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>
+          <span style="display:inline-flex;align-items:center;gap:6px">
+            <svg width="9" height="9" viewBox="0 0 11 11" fill="none" style="flex-shrink:0"><polygon points="5.5,0.5 10,3 10,8 5.5,10.5 1,8 1,3" stroke="rgba(180,142,255,0.6)" stroke-width="1.2" fill="none"/></svg>
+            ${escHtml(s.name)}
+          </span>
+        </td>
+        <td style="color:var(--muted);font-size:12px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(s.description || '—')}</td>
+        <td style="color:rgba(180,142,255,0.7);font-size:12px">${(s.tool_types||[]).join(', ') || '—'}</td>
+        <td><button class="btn danger" onclick="deleteSkill('${escHtml(s.name)}')">delete</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch {}
+}
+
 async function loadToolTable() {
   try {
     const data = await api.get('/tools');
@@ -1115,10 +1287,10 @@ async function loadToolTable() {
 
 async function saveLLM() {
   const body = {
-    name: document.getElementById('llm-name').value.trim(),
+    name:       document.getElementById('llm-name').value.trim(),
     model_name: document.getElementById('llm-model').value.trim(),
-    base_url: document.getElementById('llm-url').value.trim(),
-    api_key: document.getElementById('llm-key').value.trim(),
+    base_url:   document.getElementById('llm-url').value.trim(),
+    api_key:    document.getElementById('llm-key').value.trim(),
     api_format: document.getElementById('llm-format').value,
   };
   if (!body.name||!body.model_name||!body.base_url||!body.api_key) { setStatus('llm-status','all fields required',false); return; }
@@ -1130,10 +1302,10 @@ async function deleteLLM(name) { await api.delete('/llms?name='+encodeURICompone
 
 async function saveAgent() {
   const body = {
-    name: document.getElementById('ag-name').value.trim(),
+    name:          document.getElementById('ag-name').value.trim(),
     system_prompt: document.getElementById('ag-prompt').value.trim(),
-    tool_types: document.getElementById('ag-tools').value.split(',').map(s=>s.trim()).filter(Boolean),
-    llm_name: document.getElementById('ag-llm').value.trim() || null,
+    tool_types:    document.getElementById('ag-tools').value.split(',').map(s=>s.trim()).filter(Boolean),
+    llm_name:      document.getElementById('ag-llm').value.trim() || null,
   };
   if (!body.name||!body.system_prompt) { setStatus('agent-status','name and prompt required',false); return; }
   const res = await api.post('/agents', body);
@@ -1141,6 +1313,31 @@ async function saveAgent() {
   else setStatus('agent-status', res.detail||'error', false);
 }
 async function deleteAgent(name) { await api.delete('/agents?name='+encodeURIComponent(name)); loadAgentTable(); }
+
+async function saveSkill() {
+  const body = {
+    name:         document.getElementById('sk-name').value.trim(),
+    description:  document.getElementById('sk-desc').value.trim(),
+    instructions: document.getElementById('sk-instructions').value.trim(),
+    tool_types:   document.getElementById('sk-tools').value.split(',').map(s=>s.trim()).filter(Boolean),
+  };
+  if (!body.name || !body.description || !body.instructions) {
+    setStatus('skill-status', 'name, description and instructions are required', false);
+    return;
+  }
+  const res = await api.post('/skills', body);
+  if (res.name) {
+    setStatus('skill-status', 'saved: ' + res.name, true);
+    document.getElementById('sk-name').value = '';
+    document.getElementById('sk-desc').value = '';
+    document.getElementById('sk-instructions').value = '';
+    document.getElementById('sk-tools').value = '';
+    loadSkillTable();
+  } else {
+    setStatus('skill-status', res.detail || 'error', false);
+  }
+}
+async function deleteSkill(name) { await api.delete('/skills?name='+encodeURIComponent(name)); loadSkillTable(); }
 
 function initCodeEditor() {
   codeEditor = CodeMirror.fromTextArea(document.getElementById('t-code-raw'), {
@@ -1154,10 +1351,10 @@ async function saveTool() {
   try { params = JSON.parse(document.getElementById('t-params').value || '{}'); }
   catch { setStatus('tool-status','invalid JSON in parameters',false); return; }
   const body = {
-    name: document.getElementById('t-name').value.trim(),
+    name:        document.getElementById('t-name').value.trim(),
     description: document.getElementById('t-desc').value.trim(),
-    parameters: params,
-    code: codeEditor ? codeEditor.getValue() : '',
+    parameters:  params,
+    code:        codeEditor ? codeEditor.getValue() : '',
     entry_point: document.getElementById('t-entry').value.trim() || 'run',
   };
   if (!body.name||!body.description||!body.code) { setStatus('tool-status','name, description and code required',false); return; }
