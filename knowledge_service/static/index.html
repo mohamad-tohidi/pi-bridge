@@ -41,8 +41,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
 
-/* ── SIDEBAR ──
-   RTL: slides from the RIGHT */
+/* ── SIDEBAR ── */
 #sidebar {
   position: fixed;
   top: 0; right: 0; bottom: 0;
@@ -56,241 +55,63 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   z-index: 100;
 }
 #sidebar.open { transform: translateX(0); }
-
-#sidebar-top {
-  padding: 20px 18px 14px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-  text-align: right;
-}
-#sidebar-title {
-  font-size: 11px;
-  color: var(--muted);
-  margin-bottom: 14px;
-  letter-spacing: 0;
-}
+#sidebar-top { padding: 20px 18px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; text-align: right; }
+#sidebar-title { font-size: 11px; color: var(--muted); margin-bottom: 14px; }
 .sb-label { font-size: 11px; color: var(--muted); margin-bottom: 5px; }
-
 #agent-select {
-  width: 100%;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  color: var(--bright);
-  font-family: var(--font);
-  font-size: 13px;
-  padding: 7px 10px;
-  outline: none;
-  cursor: pointer;
-  border-radius: var(--radius);
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  color: var(--bright); font-family: var(--font); font-size: 13px;
+  padding: 7px 10px; outline: none; cursor: pointer; border-radius: var(--radius);
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23706e62'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: left 10px center;
-  direction: rtl;
+  background-repeat: no-repeat; background-position: left 10px center; direction: rtl;
 }
 #agent-select:focus { border-color: var(--green); }
-
-#session-display {
-  margin-top: 10px;
-  font-size: 11px;
-  color: var(--muted);
-  font-family: var(--mono);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  direction: ltr;
-  text-align: left;
-}
+#session-display { margin-top: 10px; font-size: 11px; color: var(--muted); font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: ltr; text-align: left; }
 #llm-display { margin-top: 4px; font-size: 11px; color: var(--muted); }
 #llm-display span { color: var(--blue); }
-
-#sidebar-nav {
-  padding: 12px 10px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex-shrink: 0;
-}
-.sb-nav-btn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: var(--radius);
-  border: none;
-  background: none;
-  color: var(--subtle);
-  font-family: var(--font);
-  font-size: 13px;
-  cursor: pointer;
-  width: 100%;
-  text-align: right;
-  transition: background 0.12s, color 0.12s;
-  flex-direction: row-reverse;
-}
+#sidebar-nav { padding: 12px 10px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+.sb-nav-btn { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius); border: none; background: none; color: var(--subtle); font-family: var(--font); font-size: 13px; cursor: pointer; width: 100%; text-align: right; transition: background 0.12s, color 0.12s; flex-direction: row-reverse; }
 .sb-nav-btn:hover, .sb-nav-btn.active { background: var(--surface2); color: var(--bright); }
 .sb-nav-btn svg { flex-shrink: 0; opacity: 0.7; }
-
-#sidebar-bottom {
-  padding: 12px 10px;
-  margin-top: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex-shrink: 0;
-}
-.sb-action-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: none;
-  color: var(--muted);
-  font-family: var(--font);
-  font-size: 12px;
-  cursor: pointer;
-  width: 100%;
-  flex-direction: row-reverse;
-  transition: color 0.12s, border-color 0.12s;
-}
+#sidebar-bottom { padding: 12px 10px; margin-top: auto; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+.sb-action-btn { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: var(--radius); border: 1px solid var(--border); background: none; color: var(--muted); font-family: var(--font); font-size: 12px; cursor: pointer; width: 100%; flex-direction: row-reverse; transition: color 0.12s, border-color 0.12s; }
 .sb-action-btn:hover { color: var(--bright); border-color: var(--subtle); }
-
-#sb-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  z-index: 99;
-  animation: fadeIn 0.15s ease;
-}
+#sb-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; animation: fadeIn 0.15s ease; }
 #sb-overlay.show { display: block; }
 
-/* ── SIDEBAR ARROW TAB ──
-   Small clickable tab on the right edge, vertically centered */
+/* ── SIDEBAR ARROW TAB ── */
 #sb-tab {
-  position: fixed;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 98;
-  width: 16px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  opacity: 0.25;
-  transition: opacity 0.2s;
-  color: var(--subtle);
+  position: fixed; right: 0; top: 50%; transform: translateY(-50%);
+  z-index: 98; width: 16px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; opacity: 0.25; transition: opacity 0.2s; color: var(--subtle);
 }
 #sb-tab:hover { opacity: 0.7; }
-#sb-tab svg { display: block; }
-/* hide tab when sidebar is open */
 #sidebar.open ~ #sb-tab { opacity: 0; pointer-events: none; }
 
 /* ── PAGES ── */
 .page { display: none; height: 100vh; flex-direction: column; overflow: hidden; }
 .page.active { display: flex; }
-
-/* ── CHAT PAGE ── */
 #page-chat { position: relative; }
-#messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
+
+#messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; align-items: center; }
 #messages.scroll-locked { overflow-y: hidden; }
 
-.msg-wrap {
-  width: 100%;
-  max-width: 720px;
-  margin-bottom: 28px;
-  animation: msgIn 0.18s ease;
-}
-.msg-wrap.user .msg-content {
-  color: var(--text);
-  font-size: 14px;
-  line-height: 1.75;
-  white-space: pre-wrap;
-  word-break: break-word;
-  padding: 12px 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  text-align: right;
-}
-.msg-wrap.assistant .msg-content {
-  color: var(--bright);
-  font-size: 14.5px;
-  line-height: 1.85;
-  text-align: right;
-}
+.msg-wrap { width: 100%; max-width: 720px; margin-bottom: 28px; animation: msgIn 0.18s ease; }
+.msg-wrap.user .msg-content { color: var(--text); font-size: 14px; line-height: 1.75; white-space: pre-wrap; word-break: break-word; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); text-align: right; }
+.msg-wrap.assistant .msg-content { color: var(--bright); font-size: 14.5px; line-height: 1.85; text-align: right; }
 
-/* ── process trace ── */
 .process-trace { margin-bottom: 10px; display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
-.trace-thinking {
-  display: inline-flex;
-  align-items: center;
-  flex-direction: row-reverse;
-  gap: 8px;
-  cursor: pointer;
-  user-select: none;
-  padding: 5px 10px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 12px;
-  transition: border-color 0.12s, color 0.12s;
-  width: fit-content;
-}
+.trace-thinking { display: inline-flex; align-items: center; flex-direction: row-reverse; gap: 8px; cursor: pointer; user-select: none; padding: 5px 10px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 12px; transition: border-color 0.12s, color 0.12s; width: fit-content; }
 .trace-thinking:hover { border-color: var(--subtle); color: var(--text); }
 .thinking-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--yellow); flex-shrink: 0; }
 .thinking-dot.pulse { animation: pulse 1.2s ease infinite; }
 .thinking-dot.done  { background: var(--muted); animation: none; }
-.trace-thinking-content {
-  display: none;
-  margin-top: 4px;
-  padding: 10px 14px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  font-size: 12px;
-  font-family: var(--mono);
-  color: var(--muted);
-  white-space: pre-wrap;
-  max-height: 220px;
-  overflow-y: auto;
-  animation: fadeIn 0.15s ease;
-  direction: ltr;
-  text-align: left;
-  width: 100%;
-}
+.trace-thinking-content { display: none; margin-top: 4px; padding: 10px 14px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); font-size: 12px; font-family: var(--mono); color: var(--muted); white-space: pre-wrap; max-height: 220px; overflow-y: auto; animation: fadeIn 0.15s ease; direction: ltr; text-align: left; width: 100%; }
 .trace-thinking-content.open { display: block; }
-
 .trace-tool { display: flex; flex-direction: column; align-items: flex-end; animation: fadeSlideIn 0.18s ease; }
-.trace-tool-header {
-  display: inline-flex;
-  align-items: center;
-  flex-direction: row-reverse;
-  gap: 8px;
-  cursor: pointer;
-  user-select: none;
-  padding: 5px 10px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  font-size: 12px;
-  color: var(--muted);
-  width: fit-content;
-  transition: border-color 0.12s;
-}
+.trace-tool-header { display: inline-flex; align-items: center; flex-direction: row-reverse; gap: 8px; cursor: pointer; user-select: none; padding: 5px 10px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); font-size: 12px; color: var(--muted); width: fit-content; transition: border-color 0.12s; }
 .trace-tool-header:hover { border-color: var(--subtle); color: var(--text); }
 .tool-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--yellow); flex-shrink: 0; transition: background 0.3s; }
 .tool-dot.done  { background: var(--green); }
@@ -304,10 +125,9 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .trace-tool-body.open { display: block; }
 .trace-tool-section { padding: 8px 12px; border-bottom: 1px solid var(--border); }
 .trace-tool-section:last-child { border-bottom: none; }
-.trace-section-label { font-size: 10px; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 5px; text-align: right; }
+.trace-section-label { font-size: 10px; color: var(--muted); margin-bottom: 5px; text-align: right; }
 .trace-code { font-family: var(--mono); font-size: 11.5px; color: var(--text); white-space: pre-wrap; word-break: break-all; max-height: 140px; overflow-y: auto; background: var(--bg); padding: 6px 8px; border-radius: 4px; direction: ltr; text-align: left; }
 
-/* ── markdown ── */
 .msg-content p { margin-bottom: 10px; }
 .msg-content p:last-child { margin-bottom: 0; }
 .msg-content h1,.msg-content h2,.msg-content h3 { color: var(--bright); font-size: 15px; font-weight: 600; margin: 14px 0 6px; }
@@ -325,113 +145,24 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .stream-cursor { display: inline-block; width: 2px; height: 1em; background: var(--subtle); margin-right: 1px; vertical-align: text-bottom; animation: blink 0.9s step-end infinite; }
 
 /* ── INPUT AREA ── */
-#input-wrap {
-  flex-shrink: 0;
-  display: flex;
-  justify-content: center;
-  padding: 0 20px 24px;
-}
-#input-box {
-  width: 100%;
-  max-width: 560px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  display: flex;
-  flex-direction: column;
-  transition: border-color 0.15s;
-}
+#input-wrap { flex-shrink: 0; display: flex; justify-content: center; padding: 0 20px 24px; }
+#input-box { width: 100%; max-width: 560px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; transition: border-color 0.15s; }
 #input-box:focus-within { border-color: var(--subtle); }
-
-/* agent select — ghost, bottom corner of input box */
-#input-agent-row {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 0 12px 6px 10px;
-  opacity: 0.35;
-  transition: opacity 0.2s;
-}
-#input-agent-row:hover,
-#input-box:focus-within #input-agent-row { opacity: 0.7; }
-#input-agent-select {
-  background: transparent;
-  border: none;
-  outline: none;
-  color: var(--muted);
-  font-family: var(--font);
-  font-size: 11px;
-  cursor: pointer;
-  appearance: none;
-  padding: 0;
-  direction: rtl;
-}
+#input-agent-row { display: flex; align-items: center; justify-content: flex-end; padding: 0 12px 6px 10px; opacity: 0.35; transition: opacity 0.2s; }
+#input-agent-row:hover, #input-box:focus-within #input-agent-row { opacity: 0.7; }
+#input-agent-select { background: transparent; border: none; outline: none; color: var(--muted); font-family: var(--font); font-size: 11px; cursor: pointer; appearance: none; padding: 0; direction: rtl; }
 #input-agent-select option { background: var(--surface2); color: var(--text); }
-
-#input-main-row {
-  display: flex;
-  align-items: flex-end;
-  flex-direction: row-reverse;
-}
-#user-input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: var(--bright);
-  font-family: var(--font);
-  font-size: 14px;
-  padding: 12px 14px 8px;
-  resize: none;
-  overflow-y: hidden;
-  min-height: 46px;
-  max-height: 180px;
-  line-height: 1.6;
-  direction: rtl;
-  text-align: right;
-}
+#input-main-row { display: flex; align-items: flex-end; flex-direction: row-reverse; }
+#user-input { flex: 1; background: transparent; border: none; outline: none; color: var(--bright); font-family: var(--font); font-size: 14px; padding: 12px 14px 8px; resize: none; overflow-y: hidden; min-height: 46px; max-height: 180px; line-height: 1.6; direction: rtl; text-align: right; }
 #user-input::placeholder { color: var(--muted); }
-#send-btn {
-  flex-shrink: 0;
-  align-self: flex-end;
-  margin: 0 0 8px 8px;
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--muted);
-  font-family: var(--font);
-  font-size: 12px;
-  padding: 5px 14px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: color 0.12s, border-color 0.12s, background 0.12s;
-  white-space: nowrap;
-}
+#send-btn { flex-shrink: 0; align-self: flex-end; margin: 0 0 8px 8px; background: none; border: 1px solid var(--border); color: var(--muted); font-family: var(--font); font-size: 12px; padding: 5px 14px; border-radius: 4px; cursor: pointer; transition: color 0.12s, border-color 0.12s, background 0.12s; white-space: nowrap; }
 #send-btn:hover:not(:disabled) { color: var(--bright); border-color: var(--subtle); background: var(--surface2); }
 #send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-/* center input when empty */
-#page-chat.empty #input-wrap {
-  position: absolute;
-  left: 0; right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  padding: 0 20px;
-}
+#page-chat.empty #input-wrap { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); padding: 0 20px; }
 #page-chat.empty #messages { visibility: hidden; }
-
-/* animate to bottom on first send */
-#page-chat.transitioning #input-wrap {
-  position: absolute;
-  left: 0; right: 0;
-  bottom: 0; top: auto;
-  transform: none;
-  padding: 0 20px 24px;
-  animation: inputSlideDown 0.38s cubic-bezier(.4,0,.2,1) forwards;
-}
-@keyframes inputSlideDown {
-  from { bottom: 40%; opacity: 0.7; transform: translateY(20px); }
-  to   { bottom: 0;   opacity: 1;   transform: translateY(0); }
-}
+#page-chat.transitioning #input-wrap { position: absolute; left: 0; right: 0; bottom: 0; top: auto; transform: none; padding: 0 20px 24px; animation: inputSlideDown 0.38s cubic-bezier(.4,0,.2,1) forwards; }
+@keyframes inputSlideDown { from { bottom: 40%; opacity: 0.7; transform: translateY(20px); } to { bottom: 0; opacity: 1; transform: translateY(0); } }
 
 /* ── CONFIG PAGE ── */
 #page-config { overflow-y: auto; padding: 48px 20px 40px; align-items: center; }
@@ -467,7 +198,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .status-msg.ok  { color: var(--green); }
 .status-msg.err { color: var(--red); }
 
-/* ── animations ── */
 @keyframes fadeIn      { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
 @keyframes msgIn       { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -478,7 +208,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 </head>
 <body>
 
-<!-- ══ SIDEBAR ══ -->
 <div id="sidebar">
   <div id="sidebar-top">
     <div id="sidebar-title">کارخانه‌ی عامل</div>
@@ -510,14 +239,12 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 </div>
 <div id="sb-overlay" onclick="closeSidebar()"></div>
 
-<!-- ══ SIDEBAR ARROW TAB ══ -->
 <div id="sb-tab" onclick="toggleSidebar()" title="باز کردن منو (Ctrl+\\)">
   <svg width="8" height="14" viewBox="0 0 8 14" fill="none">
     <path d="M6 1L1 7l5 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
 </div>
 
-<!-- ══ CHAT PAGE ══ -->
 <div id="page-chat" class="page active empty">
   <div id="messages"></div>
   <div id="input-wrap">
@@ -533,11 +260,8 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   </div>
 </div>
 
-<!-- ══ CONFIG PAGE ══ -->
 <div id="page-config" class="page">
   <div class="config-inner">
-
-    <!-- LLMs -->
     <div class="config-section">
       <div class="config-section-title">تنظیمات مدل زبانی</div>
       <table class="data-table" id="llm-table">
@@ -550,18 +274,12 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
         <div class="field"><label>آدرس پایه</label><input id="llm-url" placeholder="https://api.openai.com/v1" dir="ltr"></div>
         <div class="field"><label>کلید API</label><input id="llm-key" type="password" placeholder="sk-…" dir="ltr"></div>
         <div class="field"><label>قالب خروجی</label>
-          <select id="llm-format">
-            <option value="completion">completion</option>
-            <option value="response">response</option>
-            <option value="anthropic">anthropic</option>
-          </select>
+          <select id="llm-format"><option value="completion">completion</option><option value="response">response</option><option value="anthropic">anthropic</option></select>
         </div>
       </div>
       <div class="btn-row"><button class="btn primary" onclick="saveLLM()">افزودن مدل</button></div>
       <div class="status-msg" id="llm-status"></div>
     </div>
-
-    <!-- Agents -->
     <div class="config-section">
       <div class="config-section-title">عامل‌ها</div>
       <table class="data-table" id="agent-table">
@@ -577,8 +295,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
       <div class="btn-row"><button class="btn primary" onclick="saveAgent()">افزودن عامل</button></div>
       <div class="status-msg" id="agent-status"></div>
     </div>
-
-    <!-- Tools -->
     <div class="config-section">
       <div class="config-section-title">ابزارهای پویا</div>
       <table class="data-table" id="tool-table">
@@ -595,7 +311,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
       <div class="btn-row"><button class="btn primary" onclick="saveTool()">ثبت ابزار</button></div>
       <div class="status-msg" id="tool-status"></div>
     </div>
-
   </div>
 </div>
 
@@ -617,8 +332,6 @@ function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sb-overlay').classList.remove('show');
 }
-
-// Ctrl+\ = toggle sidebar
 document.addEventListener('keydown', function(e) {
   if (e.ctrlKey && e.key === '\\') { e.preventDefault(); toggleSidebar(); }
 });
@@ -644,6 +357,7 @@ const api = {
   post:   (u,b)=> fetch(u,{method:'POST',  headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(r=>r.json()),
   patch:  (u,b)=> fetch(u,{method:'PATCH', headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(r=>r.json()),
   delete: u    => fetch(u,{method:'DELETE'}).then(r=>r.json()),
+  postRaw:(u)  => fetch(u,{method:'POST'}).then(r=>r.json()),
 };
 
 async function init() {
@@ -670,14 +384,26 @@ async function loadAgentSelect() {
   } catch {}
 }
 
-function onAgentChange(val) {
+// Pre-create a session as soon as an agent is selected
+async function onAgentChange(val) {
   currentAgent = val || null;
   currentSessionId = null;
   document.getElementById('session-display').textContent = 'بدون نشست';
   document.getElementById('agent-select').value = val;
   document.getElementById('input-agent-select').value = val;
   updateLLMDisplay();
+
+  if (currentAgent) {
+    try {
+      const res = await api.postRaw('/sessions?agent_name=' + encodeURIComponent(currentAgent));
+      if (res && res.session_id) {
+        currentSessionId = res.session_id;
+        document.getElementById('session-display').textContent = res.session_id.slice(0,8) + '…';
+      }
+    } catch {}
+  }
 }
+
 document.getElementById('agent-select').addEventListener('change', function() { onAgentChange(this.value); });
 document.getElementById('input-agent-select').addEventListener('change', function() { onAgentChange(this.value); });
 
@@ -689,14 +415,26 @@ async function updateLLMDisplay() {
   } catch {}
 }
 
-function newSession() {
-  currentSessionId = null;
+async function newSession() {
   hasMessages = false;
-  document.getElementById('session-display').textContent = 'بدون نشست';
   document.getElementById('messages').innerHTML = '';
   document.getElementById('page-chat').classList.add('empty');
   document.getElementById('page-chat').classList.remove('transitioning');
   closeSidebar();
+
+  currentSessionId = null;
+  document.getElementById('session-display').textContent = 'بدون نشست';
+
+  // Pre-create a fresh session if agent is selected
+  if (currentAgent) {
+    try {
+      const res = await api.postRaw('/sessions?agent_name=' + encodeURIComponent(currentAgent));
+      if (res && res.session_id) {
+        currentSessionId = res.session_id;
+        document.getElementById('session-display').textContent = res.session_id.slice(0,8) + '…';
+      }
+    } catch {}
+  }
 }
 
 // vim-like scroll
@@ -756,8 +494,10 @@ async function sendMessage() {
   contentEl.appendChild(cursorEl);
 
   try {
+    // Always send with the pre-created session_id (guaranteed to exist if agent was selected)
     const body = { agent_name: currentAgent, query: text };
     if (currentSessionId) body.session_id = currentSessionId;
+
     const res = await fetch('/ask/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -776,6 +516,7 @@ async function sendMessage() {
         if (!line.startsWith('data: ')) continue;
         let evt; try { evt = JSON.parse(line.slice(6)); } catch { continue; }
         if (evt.type === 'session_id') {
+          // Keep session in sync (backend may confirm same id or issue a new one)
           currentSessionId = evt.session_id;
           document.getElementById('session-display').textContent = evt.session_id.slice(0,8) + '…';
         }
@@ -871,10 +612,7 @@ function addToolTrace(traceEl, id, name, args) {
       <span class="tool-status-label" id="tstat-${id}"></span>
     </div>
     <div class="trace-tool-body" id="tbody-${id}">
-      <div class="trace-tool-section">
-        <div class="trace-section-label">ورودی</div>
-        <div class="trace-code">${escHtml(JSON.stringify(args,null,2))}</div>
-      </div>
+      <div class="trace-tool-section"><div class="trace-section-label">ورودی</div><div class="trace-code">${escHtml(JSON.stringify(args,null,2))}</div></div>
       <div id="tresult-${id}"></div>
     </div>
   `;
@@ -890,16 +628,12 @@ function updateToolTrace(traceEl, id, content, isError) {
   if (stat) { stat.textContent = isError ? 'خطا' : '✓ انجام شد'; stat.classList.add('show'); if (isError) stat.classList.add('err'); }
   if (res)  {
     res.innerHTML = `<div class="trace-tool-section"><div class="trace-section-label">خروجی</div><div class="trace-code">${escHtml(String(content))}</div></div>`;
-    const body = document.getElementById('tbody-'+id);
-    if (body) body.classList.add('open');
+    document.getElementById('tbody-'+id)?.classList.add('open');
   }
   scrollToBottom();
 }
 
-function scrollToBottom() {
-  const m = document.getElementById('messages');
-  m.scrollTop = m.scrollHeight;
-}
+function scrollToBottom() { const m = document.getElementById('messages'); m.scrollTop = m.scrollHeight; }
 
 async function loadConfigData() { await Promise.all([loadLLMTable(), loadAgentTable(), loadToolTable()]); }
 
@@ -907,8 +641,7 @@ async function loadLLMTable() {
   try {
     const data = await api.get('/llms');
     const list = Array.isArray(data) ? data : (data && data.name ? [data] : []);
-    const tbody = document.querySelector('#llm-table tbody');
-    tbody.innerHTML = '';
+    const tbody = document.querySelector('#llm-table tbody'); tbody.innerHTML = '';
     list.forEach(l => {
       const tr = document.createElement('tr');
       tr.innerHTML = `<td>${escHtml(l.name)}</td><td style="font-family:var(--mono);font-size:12px;direction:ltr;text-align:left">${escHtml(l.model_name)}</td><td style="color:var(--muted);font-size:12px;font-family:var(--mono);direction:ltr;text-align:left">${escHtml(l.base_url)}</td><td>${escHtml(l.api_format)}</td><td><button class="btn danger" onclick="deleteLLM('${escHtml(l.name)}')">حذف</button></td>`;
@@ -920,8 +653,7 @@ async function loadAgentTable() {
   try {
     const data = await api.get('/agents');
     const list = Array.isArray(data) ? data : (data && data.name ? [data] : []);
-    const tbody = document.querySelector('#agent-table tbody');
-    tbody.innerHTML = '';
+    const tbody = document.querySelector('#agent-table tbody'); tbody.innerHTML = '';
     list.forEach(a => {
       const tr = document.createElement('tr');
       tr.innerHTML = `<td>${escHtml(a.name)}</td><td style="color:var(--blue);font-size:12px">${escHtml(a.llm_name||'پیش‌فرض')}</td><td style="color:var(--muted);font-size:12px;direction:ltr;text-align:left">${(a.tool_types||[]).join(', ')}</td><td><button class="btn danger" onclick="deleteAgent('${escHtml(a.name)}')">حذف</button></td>`;
@@ -934,8 +666,7 @@ async function loadToolTable() {
   try {
     const data = await api.get('/tools');
     const list = Array.isArray(data) ? data : (data && data.name ? [data] : []);
-    const tbody = document.querySelector('#tool-table tbody');
-    tbody.innerHTML = '';
+    const tbody = document.querySelector('#tool-table tbody'); tbody.innerHTML = '';
     list.forEach(t => {
       const tr = document.createElement('tr');
       tr.innerHTML = `<td>${escHtml(t.name)}</td><td><span class="badge ${t.status}">${t.status}</span>${t.error?`<br><span style="color:var(--red);font-size:11px">${escHtml(t.error)}</span>`:''}</td><td style="font-family:var(--mono);font-size:12px;direction:ltr;text-align:left">${escHtml(t.entry_point)}</td><td><button class="btn danger" onclick="deleteTool('${escHtml(t.name)}')">حذف</button></td>`;

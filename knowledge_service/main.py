@@ -55,7 +55,7 @@ app = FastAPI(
         },
         {
             "name": "Sessions",
-            "description": "Inspect and close active conversation sessions.",
+            "description": "Create, inspect, and close active conversation sessions.",
         },
     ],
 )
@@ -329,6 +329,27 @@ async def ask_stream(request: AskRequest):
 # ===========================================================================
 # SESSIONS
 # ===========================================================================
+
+@app.post("/sessions", response_model=SessionInfo, status_code=201, tags=["Sessions"])
+async def create_session(agent_name: str):
+    """
+    Pre-create an empty session for an agent before sending any messages.
+    Returns a session_id that must be passed to /ask or /ask/stream so that
+    the very first message is included in the conversation history.
+    """
+    try:
+        _, sid = agent_manager.get_or_create_session(agent_name, session_id=None)
+        match = next((s for s in agent_manager.list_sessions() if s.session_id == sid), None)
+        if not match:
+            raise HTTPException(status_code=500, detail="Session created but not found")
+        return match
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/sessions", response_model=Union[SessionInfo, List[SessionInfo]], tags=["Sessions"])
 async def get_sessions(session_id: Optional[str] = None):
