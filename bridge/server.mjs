@@ -9,6 +9,9 @@
  */
 
 import { createInterface } from 'readline';
+import { mkdtempSync, writeFileSync, rmSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import { getModel } from '@earendil-works/pi-ai';
 import { Type } from 'typebox';
 import {
@@ -19,6 +22,7 @@ import {
     DefaultResourceLoader,
     createAgentSession,
     defineTool,
+    getAgentDir,
 } from '@earendil-works/pi-coding-agent';
 
 // ---------------------------------------------------------------------------
@@ -174,10 +178,14 @@ if (initMsg.type !== 'init') {
 const {
     provider: providerConfig,
     model: modelConfig,
+    cwd: initCwd,
     system_prompt = '',
     custom_tools: customToolDefs = [],
     skills: skillDefs = [],
 } = initMsg;
+
+const cwd = initCwd ?? process.cwd();
+const agentDir = getAgentDir();
 
 // Validate thinking level
 const thinkingVal = modelConfig.thinking ?? 'off';
@@ -248,21 +256,38 @@ for (const toolDef of customToolDefs) {
 }
 
 // ---------------------------------------------------------------------------
-// Build skills list
-// skillDefs: [{ name, description, content, allowed_tools? }]
-// content is the raw markdown body of the skill (no file path needed)
+// Build skills
+// The SDK Skill type requires filePath + baseDir (content is read from file).
+// We write each skill's markdown content to a temp file so the SDK can load it.
 // ---------------------------------------------------------------------------
 
-const skills = skillDefs.map((s) => ({
-    name: s.name,
-    description: s.description,
-    // Virtual skill — no file path, inline content via source field
-    filePath: s.name,
-    baseDir: '.',
-    source: 'custom',
-    content: s.content ?? '',
-    allowedTools: s.allowed_tools ?? null,
-}));
+let skillsTempDir = null;
+const skills = [];
+
+if (skillDefs.length > 0) {
+    skillsTempDir = mkdtempSync(join(tmpdir(), 'pi-bridge-skills-'));
+
+    for (const s of skillDefs) {
+        const fileName = `${s.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.md`;
+        const filePath = join(skillsTempDir, fileName);
+        writeFileSync(filePath, s.content ?? '', 'utf8');
+
+        skills.push({
+            name: s.name,
+            description: s.description ?? '',
+            filePath,
+            baseDir: skillsTempDir,
+            source: 'custom',
+        });
+    }
+}
+
+// Cleanup temp skill files on exit
+process.on('exit', () => {
+    if (skillsTempDir) {
+        try { rmSync(skillsTempDir, { recursive: true, force: true }); } catch {}
+    }
+});
 
 // ---------------------------------------------------------------------------
 // Set up auth, registry, loader, session
@@ -276,6 +301,8 @@ const modelRegistry = ModelRegistry.inMemory(authStorage);
 const systemPrompt = system_prompt || 'You are a helpful assistant. Answer clearly and concisely.';
 
 const loader = new DefaultResourceLoader({
+    cwd,
+    agentDir,
     systemPromptOverride: () => systemPrompt,
     ...(skills.length > 0 ? {
         skillsOverride: (current) => ({
@@ -289,11 +316,13 @@ await loader.reload();
 let session;
 try {
     const result = await createAgentSession({
+        cwd,
+        agentDir,
         model: piModel,
         thinkingLevel: thinkingVal === 'off' ? undefined : thinkingVal,
         authStorage,
         modelRegistry,
-        noTools: 'builtin',      // strip ALL coding agent built-in tools
+        noTools: 'builtin',
         customTools,
         resourceLoader: loader,
         sessionManager: SessionManager.inMemory(),
