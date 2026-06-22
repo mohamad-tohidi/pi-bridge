@@ -377,3 +377,9 @@ async def close_session(session_id: str):
 @app.on_event("shutdown")
 def shutdown_event():
     agent_manager.close_all()
+
+
+
+if __name__=="__main__":
+    import uvicorn
+    uvicorn.run(app=app, host="0.0.0.0", port=8000)
