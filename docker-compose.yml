@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  pi-bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pi-bridge-service
+    ports:
+      - "8985:8000"
+    env_file:
+      - .env
+    restart: unless-stopped

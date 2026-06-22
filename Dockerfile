@@ -34,5 +34,5 @@ EXPOSE 8000
 
 # Run the knowledge service using uvicorn
 # We run it from the root so that 'knowledge_service' can be imported as a module
-CMD ["uvicorn", "knowledge_service.main:app", "--host", "0.0.0.0", "--port", "8983"]
+CMD ["uvicorn", "knowledge_service.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
